@@ -26,7 +26,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from dotenv import load_dotenv
 
 load_dotenv()
-
+api_key = os.getenv("OPENAI_API_KEY")
 # =============================================================================
 # CẤU HÌNH
 # =============================================================================
@@ -41,47 +41,107 @@ LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 # RETRIEVAL — DENSE (Vector Search)
 # =============================================================================
 
+import chromadb
+from index import get_embedding, CHROMA_DB_DIR 
+
 def retrieve_dense(query: str, top_k: int = TOP_K_SEARCH) -> List[Dict[str, Any]]:
-    """
-    Dense retrieval: tìm kiếm theo embedding similarity trong ChromaDB.
+    client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
+    collection = client.get_collection("rag_lab")
 
-    Args:
-        query: Câu hỏi của người dùng
-        top_k: Số chunk tối đa trả về
+    # 2. Embed câu hỏi của người dùng
+    query_embedding = get_embedding(query)
 
-    Returns:
-        List các dict, mỗi dict là một chunk với:
-          - "text": nội dung chunk
-          - "metadata": metadata (source, section, effective_date, ...)
-          - "score": cosine similarity score
-
-    TODO Sprint 2:
-    1. Embed query bằng cùng model đã dùng khi index (xem index.py)
-    2. Query ChromaDB với embedding đó
-    3. Trả về kết quả kèm score
-
-    Gợi ý:
-        import chromadb
-        from index import get_embedding, CHROMA_DB_DIR
-
-        client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
-        collection = client.get_collection("rag_lab")
-
-        query_embedding = get_embedding(query)
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k,
-            include=["documents", "metadatas", "distances"]
-        )
-        # Lưu ý: distances trong ChromaDB cosine = 1 - similarity
-        # Score = 1 - distance
-    """
-    raise NotImplementedError(
-        "TODO Sprint 2: Implement retrieve_dense().\n"
-        "Tham khảo comment trong hàm để biết cách query ChromaDB."
+    # 3. Query trong collection
+    results = collection.query(
+        query_embeddings=[query_embedding],
+        n_results=top_k,
+        include=["documents", "metadatas", "distances"]
     )
 
+    # 4. Format lại kết quả trả về theo cấu trúc pipeline yêu cầu
+    formatted_results = []
+    if results['documents']:
+        for i in range(len(results['documents'][0])):
+            # Score = 1 - distance (giả sử dùng cosine similarity)
+            score = 1 - results['distances'][0][i]
+            formatted_results.append({
+                "text": results['documents'][0][i],
+                "metadata": results['metadatas'][0][i],
+                "score": score
+            })
 
+    return formatted_results
+from openai import OpenAI
+
+def call_llm(prompt: str) -> str:
+    # Lấy API Key từ file .env
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("Thiếu OPENAI_API_KEY trong file .env")
+        
+    client = OpenAI(api_key=api_key)
+    
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[
+            {"role": "system", "content": "Bạn là trợ lý học tập hỗ trợ sinh viên. Luôn trả lời trung thực dựa trên tài liệu được cung cấp."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0,  # Giữ mức 0 để câu trả lời ổn định và không bị "hallucination"
+        max_tokens=512,
+    )
+    
+    return response.choices[0].message.content.strip()
+
+def rag_answer(
+    query: str,
+    retrieval_mode: str = "dense",
+    top_k_search: int = TOP_K_SEARCH,
+    top_k_select: int = TOP_K_SELECT,
+    use_rerank: bool = False,
+    verbose: bool = False,
+) -> Dict[str, Any]:
+    
+    config = {
+        "retrieval_mode": retrieval_mode,
+        "top_k_search": top_k_search,
+        "top_k_select": top_k_select,
+        "use_rerank": use_rerank,
+    }
+
+    # --- Bước 1: Retrieve (Lấy dữ liệu) ---
+    if retrieval_mode == "dense":
+        candidates = retrieve_dense(query, top_k=top_k_search)
+    else:
+        # Tạm thời các mode khác fallback về dense trong Sprint 2
+        candidates = retrieve_dense(query, top_k=top_k_search)
+
+    # --- Bước 2: Rerank/Select (Lọc dữ liệu chất lượng nhất) ---
+    # Sprint 2 lấy trực tiếp top_k_select kết quả đầu tiên
+    selected_chunks = candidates[:top_k_select]
+
+    # --- Bước 3: Build Context & Prompt ---
+    # Sử dụng hàm build_context_block và build_grounded_prompt đã có sẵn trong file
+    context_block = build_context_block(selected_chunks)
+    prompt = build_grounded_prompt(query, context_block)
+
+    if verbose:
+        print(f"\n[RAG DEBUG] Query: {query}")
+        print(f"[RAG DEBUG] Sources found: {[c['metadata'].get('source') for c in selected_chunks]}")
+
+    # --- Bước 4: Generate (Sinh câu trả lời) ---
+    answer = call_llm(prompt)
+
+    # --- Bước 5: Extract Sources (Trích xuất nguồn để hiển thị) ---
+    sources = list(set([c["metadata"].get("source", "unknown") for c in selected_chunks]))
+
+    return {
+        "query": query,
+        "answer": answer,
+        "sources": sources,
+        "chunks_used": selected_chunks,
+        "config": config,
+    }
 # =============================================================================
 # RETRIEVAL — SPARSE / BM25 (Keyword Search)
 # Dùng cho Sprint 3 Variant hoặc kết hợp Hybrid
