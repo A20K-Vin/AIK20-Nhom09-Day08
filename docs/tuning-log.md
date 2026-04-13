@@ -125,7 +125,7 @@ Bằng chứng:
 **Biến thay đổi:** use_rerank  
 **Config:** True
 ```
-retrieval_mode = "dense"
+retrieval_mode = "hybrid"
 use_rerank = True
 top_k_search = 10
 top_k_select = 3
