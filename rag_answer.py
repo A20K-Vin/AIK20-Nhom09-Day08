@@ -156,51 +156,41 @@ def retrieve_sparse(query: str, top_k: int = TOP_K_SEARCH) -> List[Dict[str, Any
     Mạnh ở: exact term, mã lỗi, tên riêng (ví dụ: "ERR-403", "P1", "refund")
     Hay hụt: câu hỏi paraphrase, đồng nghĩa
 
-    TODO Sprint 3 (nếu chọn hybrid):
-    1. Cài rank_bm25: pip install rank-bm25
-    2. Load tất cả chunks từ ChromaDB (hoặc rebuild từ docs)
-    3. Tokenize và tạo BM25Index
-    4. Query và trả về top_k kết quả
-
-    Gợi ý:
-        from rank_bm25 import BM25Okapi
-        corpus = [chunk["text"] for chunk in all_chunks]
-        tokenized_corpus = [doc.lower().split() for doc in corpus]
-        bm25 = BM25Okapi(tokenized_corpus)
-        tokenized_query = query.lower().split()
-        scores = bm25.get_scores(tokenized_query)
-        top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
     """
     import chromadb
+    from rank_bm25 import BM25Okapi
     from index import CHROMA_DB_DIR
 
+    # Load toàn bộ corpus từ ChromaDB (BM25 cần toàn bộ docs để build index)
     client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
     collection = client.get_collection("rag_lab")
+    all_data = collection.get(include=["documents", "metadatas"])
 
-    payload = collection.get(include=["documents", "metadatas"])
-    all_ids = payload["ids"]
-    all_docs = payload["documents"]
-    all_metas = payload["metadatas"]
+    corpus = all_data["documents"]
+    metadatas = all_data["metadatas"]
+    ids = all_data["ids"]
 
-    from rank_bm25 import BM25Okapi
-    corpus = [doc or "" for doc in all_docs]
+    if not corpus:
+        return []
+
     tokenized_corpus = [doc.lower().split() for doc in corpus]
     bm25 = BM25Okapi(tokenized_corpus)
+
     tokenized_query = query.lower().split()
     scores = bm25.get_scores(tokenized_query)
+
     top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
-    
-    results = []
-    for idx in top_indices:
-        score = scores[idx]
-        metadata = all_metas[idx] or {}
-        metadata = {**metadata, "id": all_ids[idx]}
-        results.append({
-            "text": all_docs[idx],
-            "metadata": metadata,
-            "score": score,
-        })
-    return results
+
+    return [
+        {
+            "text": corpus[i],
+            "metadata": metadatas[i],
+            "score": float(scores[i]),
+            "id": ids[i],
+        }
+        for i in top_indices
+        if scores[i] > 0
+    ]
 
 
 # =============================================================================
@@ -223,48 +213,37 @@ def retrieve_hybrid(
         dense_weight: Trọng số cho dense score (0-1)
         sparse_weight: Trọng số cho sparse score (0-1)
 
-    TODO Sprint 3 (nếu chọn hybrid):
-    1. Chạy retrieve_dense() → dense_results
-    2. Chạy retrieve_sparse() → sparse_results
-    3. Merge bằng RRF:
-       RRF_score(doc) = dense_weight * (1 / (60 + dense_rank)) +
-                        sparse_weight * (1 / (60 + sparse_rank))
-       60 là hằng số RRF tiêu chuẩn
-    4. Sort theo RRF score giảm dần, trả về top_k
-
-    Khi nào dùng hybrid (từ slide):
+    Khi nào dùng hybrid:
     - Corpus có cả câu tự nhiên VÀ tên riêng, mã lỗi, điều khoản
-    - Query như "Approval Matrix" khi doc đổi tên thành "Access Control SOP"
+    - Query dùng alias/tên cũ ("Approval Matrix" → "Access Control SOP")
     """
-    dense_results = retrieve_dense(query, top_k=top_k*2)  # Lấy nhiều hơn để có đủ candidates
-    sparse_results = retrieve_sparse(query, top_k=top_k*2)
+    dense_results = retrieve_dense(query, top_k=top_k)
+    sparse_results = retrieve_sparse(query, top_k=top_k)
 
-        # Tạo dict để map doc_id → rank
-    dense_ranks = {res["metadata"].get("id", f"dense_{rank}"): rank for rank, res in enumerate(dense_results, 1)}
-    sparse_ranks = {res["metadata"].get("id", f"sparse_{rank}"): rank for rank, res in enumerate(sparse_results, 1)}
+    # Reciprocal Rank Fusion — dùng text[:120] làm key dedup
+    rrf_map: Dict[str, Any] = {}
 
-    # Tính RRF score cho mỗi doc_id
-    all_doc_ids = set(dense_ranks.keys()) | set(sparse_ranks.keys())
-    rrf_scores = {}
-    for doc_id in all_doc_ids:
-        dense_rank = dense_ranks.get(doc_id, float('inf'))  # Nếu không có trong dense, rank vô cực
-        sparse_rank = sparse_ranks.get(doc_id, float('inf'))  # Nếu không có trong sparse, rank vô cực
-        rrf_score = dense_weight * (1 / (60 + dense_rank)) + sparse_weight * (1 / (60 + sparse_rank))
-        rrf_scores[doc_id] = rrf_score
+    for rank, chunk in enumerate(dense_results):
+        key = chunk["text"][:120]
+        if key not in rrf_map:
+            rrf_map[key] = {"chunk": chunk, "rrf": 0.0}
+        rrf_map[key]["rrf"] += dense_weight * (1.0 / (60 + rank))
 
-    # Sort doc_ids theo RRF score giảm dần
-    sorted_doc_ids = sorted(all_doc_ids, key=lambda id: rrf_scores[id], reverse=True)
-    top_doc_ids = sorted_doc_ids[:top_k]
+    for rank, chunk in enumerate(sparse_results):
+        key = chunk["text"][:120]
+        if key not in rrf_map:
+            rrf_map[key] = {"chunk": chunk, "rrf": 0.0}
+        rrf_map[key]["rrf"] += sparse_weight * (1.0 / (60 + rank))
 
-    # Lấy lại full chunk info cho top_doc_ids
-    top_chunks = []
-    for doc_id in top_doc_ids:
-        if doc_id in dense_ranks:
-            chunk = next(res for res in dense_results if res["metadata"].get("id") == doc_id)
-        else:
-            chunk = next(res for res in sparse_results if res["metadata"].get("id") == doc_id)
-        top_chunks.append(chunk)
-    return top_chunks
+    sorted_items = sorted(rrf_map.values(), key=lambda x: x["rrf"], reverse=True)
+
+    results = []
+    for item in sorted_items[:top_k]:
+        chunk = dict(item["chunk"])
+        chunk["score"] = round(item["rrf"], 6)
+        results.append(chunk)
+    return results
+
 
 # =============================================================================
 # RERANK (Sprint 3 alternative)
