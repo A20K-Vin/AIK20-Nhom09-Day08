@@ -19,10 +19,35 @@ A/B Rule (từ slide):
 
 import json
 import csv
+import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+from dotenv import load_dotenv
 from rag_answer import rag_answer
+
+load_dotenv()
+
+# Model dùng cho LLM-as-Judge (dùng model mạnh hơn pipeline để chấm công bằng)
+JUDGE_MODEL = os.getenv("JUDGE_MODEL", "gpt-4o")
+
+
+def _call_judge(prompt: str) -> Dict[str, Any]:
+    """
+    Gọi LLM judge và parse JSON kết quả.
+    Dùng gpt-4o mặc định — mạnh hơn gpt-4o-mini để chấm chính xác hơn.
+    """
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = client.chat.completions.create(
+        model=JUDGE_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0,
+        max_tokens=256,
+        response_format={"type": "json_object"},
+    )
+    raw = response.choices[0].message.content
+    return json.loads(raw)
 
 # =============================================================================
 # CẤU HÌNH
@@ -88,12 +113,36 @@ def score_faithfulness(
 
     Trả về dict với: score (1-5) và notes (lý do)
     """
-    # TODO Sprint 4: Implement scoring
-    # Tạm thời trả về None (yêu cầu chấm thủ công)
-    return {
-        "score": None,
-        "notes": "TODO: Chấm thủ công hoặc implement LLM-as-Judge",
-    }
+    context_text = "\n\n".join(
+        f"[{i+1}] {c.get('text', '')}" for i, c in enumerate(chunks_used)
+    )
+    prompt = f"""You are an evaluation judge for a RAG system.
+
+Retrieved context:
+{context_text}
+
+Model answer:
+{answer}
+
+Rate the FAITHFULNESS of the answer on a scale of 1-5:
+5 = Every claim in the answer is directly supported by the retrieved context.
+4 = Almost fully grounded; at most one minor unsupported detail.
+3 = Mostly grounded but some information may come from outside the context.
+2 = Several claims are not in the retrieved context.
+1 = The answer is mostly fabricated / not grounded in the context.
+
+If the answer is "Không đủ dữ liệu để trả lời." or equivalent abstain, score 5 (correct abstain is faithful).
+
+Respond with JSON only: {{"score": <int 1-5>, "reason": "<one sentence>"}}"""
+
+    try:
+        result = _call_judge(prompt)
+        return {
+            "score": int(result.get("score", 3)),
+            "notes": result.get("reason", ""),
+        }
+    except Exception as e:
+        return {"score": None, "notes": f"Judge error: {e}"}
 
 
 def score_answer_relevance(
@@ -113,10 +162,32 @@ def score_answer_relevance(
 
     TODO Sprint 4: Implement tương tự score_faithfulness
     """
-    return {
-        "score": None,
-        "notes": "TODO: Implement score_answer_relevance",
-    }
+    prompt = f"""You are an evaluation judge for a RAG system.
+
+Question: {query}
+
+Model answer:
+{answer}
+
+Rate the ANSWER RELEVANCE on a scale of 1-5:
+5 = Directly and completely answers the question.
+4 = Answers correctly but missing minor details.
+3 = Related to the question but does not address the core ask.
+2 = Partially off-topic.
+1 = Does not answer the question at all.
+
+If the answer is a correct abstain ("Không đủ dữ liệu" when question cannot be answered), score 5.
+
+Respond with JSON only: {{"score": <int 1-5>, "reason": "<one sentence>"}}"""
+
+    try:
+        result = _call_judge(prompt)
+        return {
+            "score": int(result.get("score", 3)),
+            "notes": result.get("reason", ""),
+        }
+    except Exception as e:
+        return {"score": None, "notes": f"Judge error: {e}"}
 
 
 def score_context_recall(
@@ -198,10 +269,43 @@ def score_completeness(
          Rate completeness 1-5. Are all key points covered?
          Output: {'score': int, 'missing_points': [str]}"
     """
-    return {
-        "score": None,
-        "notes": "TODO: Implement score_completeness (so sánh với expected_answer)",
-    }
+    if not expected_answer:
+        return {"score": None, "notes": "No expected answer to compare"}
+
+    prompt = f"""You are an evaluation judge for a RAG system.
+
+Question: {query}
+
+Expected answer (ground truth key points):
+{expected_answer}
+
+Model answer:
+{answer}
+
+Rate the COMPLETENESS of the model answer on a scale of 1-5:
+5 = Covers all key points from the expected answer.
+4 = Missing one minor detail.
+3 = Missing some important information.
+2 = Missing most important information.
+1 = Missing almost all core content.
+
+If the expected answer indicates the question cannot be answered and the model correctly abstains, score 5.
+
+Respond with JSON only: {{"score": <int 1-5>, "missing_points": ["<point1>", ...], "reason": "<one sentence>"}}"""
+
+    try:
+        result = _call_judge(prompt)
+        missing = result.get("missing_points", [])
+        notes = result.get("reason", "")
+        if missing:
+            notes += f" | Missing: {', '.join(missing)}"
+        score = result.get("score")
+        return {
+            "score": int(score) if score is not None else None,
+            "notes": notes,
+        }
+    except Exception as e:
+        return {"score": None, "notes": f"Judge error: {e}"}
 
 
 # =============================================================================
@@ -308,7 +412,7 @@ def run_scorecard(
     for metric in ["faithfulness", "relevance", "context_recall", "completeness"]:
         scores = [r[metric] for r in results if r[metric] is not None]
         avg = sum(scores) / len(scores) if scores else None
-        print(f"\nAverage {metric}: {avg:.2f}" if avg else f"\nAverage {metric}: N/A (chưa chấm)")
+        print(f"\nAverage {metric}: {avg:.2f}" if avg is not None else f"\nAverage {metric}: N/A (chưa chấm)")
 
     return results
 
@@ -354,11 +458,11 @@ def compare_ab(
 
         b_avg = sum(b_scores) / len(b_scores) if b_scores else None
         v_avg = sum(v_scores) / len(v_scores) if v_scores else None
-        delta = (v_avg - b_avg) if (b_avg and v_avg) else None
+        delta = (v_avg - b_avg) if (b_avg is not None and v_avg is not None) else None
 
-        b_str = f"{b_avg:.2f}" if b_avg else "N/A"
-        v_str = f"{v_avg:.2f}" if v_avg else "N/A"
-        d_str = f"{delta:+.2f}" if delta else "N/A"
+        b_str = f"{b_avg:.2f}" if b_avg is not None else "N/A"
+        v_str = f"{v_avg:.2f}" if v_avg is not None else "N/A"
+        d_str = f"{delta:+.2f}" if delta is not None else "N/A"
 
         print(f"{metric:<20} {b_str:>10} {v_str:>10} {d_str:>8}")
 
@@ -425,7 +529,7 @@ Generated: {timestamp}
 |--------|--------------|
 """
     for metric, avg in averages.items():
-        avg_str = f"{avg:.2f}/5" if avg else "N/A"
+        avg_str = f"{avg:.2f}/5" if avg is not None else "N/A"
         md += f"| {metric.replace('_', ' ').title()} | {avg_str} |\n"
 
     md += "\n## Per-Question Results\n\n"
@@ -486,25 +590,29 @@ if __name__ == "__main__":
         print("Pipeline chưa implement. Hoàn thành Sprint 2 trước.")
         baseline_results = []
 
-    # --- Chạy Variant (sau khi Sprint 3 hoàn thành) ---
-    # TODO Sprint 4: Uncomment sau khi implement variant trong rag_answer.py
-    # print("\n--- Chạy Variant ---")
-    # variant_results = run_scorecard(
-    #     config=VARIANT_CONFIG,
-    #     test_questions=test_questions,
-    #     verbose=True,
-    # )
-    # variant_md = generate_scorecard_summary(variant_results, VARIANT_CONFIG["label"])
-    # (RESULTS_DIR / "scorecard_variant.md").write_text(variant_md, encoding="utf-8")
+    # --- Chạy Variant (Sprint 3: hybrid + rerank) ---
+    print("\n--- Chạy Variant ---")
+    try:
+        variant_results = run_scorecard(
+            config=VARIANT_CONFIG,
+            test_questions=test_questions,
+            verbose=True,
+        )
+        variant_md = generate_scorecard_summary(variant_results, VARIANT_CONFIG["label"])
+        variant_path = RESULTS_DIR / "scorecard_variant.md"
+        variant_path.write_text(variant_md, encoding="utf-8")
+        print(f"\nScorecard variant lưu tại: {variant_path}")
+    except NotImplementedError:
+        print("Pipeline chưa implement. Hoàn thành Sprint 3 trước.")
+        variant_results = []
 
     # --- A/B Comparison ---
-    # TODO Sprint 4: Uncomment sau khi có cả baseline và variant
-    # if baseline_results and variant_results:
-    #     compare_ab(
-    #         baseline_results,
-    #         variant_results,
-    #         output_csv="ab_comparison.csv"
-    #     )
+    if baseline_results and variant_results:
+        compare_ab(
+            baseline_results,
+            variant_results,
+            output_csv="ab_comparison.csv",
+        )
 
     print("\n\nViệc cần làm Sprint 4:")
     print("  1. Hoàn thành Sprint 2 + 3 trước")
