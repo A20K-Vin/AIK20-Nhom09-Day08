@@ -1,0 +1,82 @@
+[
+  {
+    "id": "q01",
+    "question": "LightGCN loại bỏ những thành phần nào của GCN truyền thống?",
+    "expected_answer": "LightGCN loại bỏ feature transformation và nonlinear activation, chỉ giữ lại neighborhood aggregation.",
+    "expected_sources": ["lightgcn.pdf"],
+    "difficulty": "easy",
+    "category": "LightGCN"
+  },
+  {
+    "id": "q02",
+    "question": "LightGCN học embedding người dùng và item bằng cách nào?",
+    "expected_answer": "LightGCN học embedding bằng cách lan truyền tuyến tính (linear propagation) trên đồ thị user-item và lấy tổng có trọng số của embedding từ các layer.",
+    "expected_sources": ["lightgcn.pdf"],
+    "difficulty": "medium",
+    "category": "LightGCN"
+  },
+  {
+    "id": "q03",
+    "question": "Tại sao việc bỏ nonlinear activation trong LightGCN lại giúp cải thiện hiệu năng?",
+    "expected_answer": "Vì nonlinear activation không đóng góp đáng kể cho collaborative filtering và còn làm tăng độ khó huấn luyện, nên việc loại bỏ giúp mô hình đơn giản và hiệu quả hơn.",
+    "expected_sources": ["lightgcn.pdf"],
+    "difficulty": "hard",
+    "category": "LightGCN"
+  },
+  {
+    "id": "q04",
+    "question": "BERT4Rec sử dụng cơ chế training nào để học biểu diễn chuỗi?",
+    "expected_answer": "BERT4Rec sử dụng Cloze task, tức là dự đoán các item bị masked trong chuỗi dựa trên ngữ cảnh hai chiều.",
+    "expected_sources": ["bert4rec.pdf"],
+    "difficulty": "easy",
+    "category": "BERT4Rec"
+  },
+  {
+    "id": "q05",
+    "question": "Điểm khác biệt chính giữa BERT4Rec và các mô hình sequential recommendation truyền thống là gì?",
+    "expected_answer": "BERT4Rec sử dụng mô hình bidirectional Transformer thay vì mô hình unidirectional như RNN, cho phép học ngữ cảnh cả trước và sau.",
+    "expected_sources": ["bert4rec.pdf"],
+    "difficulty": "medium",
+    "category": "BERT4Rec"
+  },
+  {
+    "id": "q06",
+    "question": "Tại sao BERT4Rec không thể huấn luyện trực tiếp theo cách bidirectional mà phải dùng masking?",
+    "expected_answer": "Vì nếu không masking, mô hình có thể nhìn thấy item cần dự đoán từ ngữ cảnh, khiến bài toán trở nên trivial.",
+    "expected_sources": ["bert4rec.pdf"],
+    "difficulty": "hard",
+    "category": "BERT4Rec"
+  },
+  {
+    "id": "q07",
+    "question": "DirectAU tối ưu hai tiêu chí chính nào trong representation learning?",
+    "expected_answer": "DirectAU tối ưu alignment và uniformity của embedding.",
+    "expected_sources": ["directau.pdf"],
+    "difficulty": "easy",
+    "category": "DirectAU"
+  },
+  {
+    "id": "q08",
+    "question": "Alignment trong DirectAU có ý nghĩa gì?",
+    "expected_answer": "Alignment đảm bảo các embedding của các cặp positive (user-item tương tác) gần nhau trong không gian embedding.",
+    "expected_sources": ["directau.pdf"],
+    "difficulty": "medium",
+    "category": "DirectAU"
+  },
+  {
+    "id": "q09",
+    "question": "Uniformity trong DirectAU có vai trò gì?",
+    "expected_answer": "Uniformity giúp các embedding phân bố đều trong không gian, tránh collapse và tăng khả năng phân biệt giữa các item.",
+    "expected_sources": ["directau.pdf"],
+    "difficulty": "medium",
+    "category": "DirectAU"
+  },
+  {
+    "id": "q10",
+    "question": "So sánh LightGCN và DirectAU: sự khác biệt chính trong cách học embedding là gì?",
+    "expected_answer": "LightGCN học embedding thông qua propagation trên đồ thị user-item, trong khi DirectAU tối ưu trực tiếp các tiêu chí hình học như alignment và uniformity trên embedding.",
+    "expected_sources": ["lightgcn.pdf", "directau.pdf"],
+    "difficulty": "hard",
+    "category": "Comparison"
+  }
+]
