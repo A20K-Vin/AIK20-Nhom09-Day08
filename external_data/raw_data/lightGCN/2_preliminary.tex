@@ -1,0 +1,93 @@
+\section{Preliminaries}\label{sec:preliminaries}
+
+We first introduce NGCF~\cite{NGCF}, a representative and state-of-the-art GCN model for recommendation. We then perform ablation studies on NGCF to judge the usefulness of each operation in NGCF. The novel contribution of this section is to show that the two common designs in GCNs, feature transformation and nonlinear activation, have no positive effect on collaborative filtering. 
+
+\subsection{NGCF Brief}\label{ss:ngcf}
+In the initial step, each user and item is associated with an ID embedding. Let $\textbf{e}_u^{(0)}$ denote the ID embedding of user $u$ and $\textbf{e}_i^{(0)}$ denote the ID embedding of item $i$. Then NGCF leverages the user-item interaction graph to propagate embeddings as:
+\begin{equation}\label{eq:NGCF}
+\begin{aligned}
+    \textbf{e}_{u}^{(k+1)} &= \sigma \Big(\textbf{W}_1 \textbf{e}_u^{(k)} + \sum_{i\in \mathcal{N}_u} \frac{1}{\sqrt{|\Set{N}_{u}||\Set{N}_{i}|}}(\Mat{W}_{1}\Mat{e}_{i}^{(k)} + \Mat{W}_{2}(\Mat{e}_{i}^{(k)}\odot\Mat{e}_{u}^{(k)}))\Big), \\
+    \textbf{e}_{i}^{(k+1)} &= \sigma \Big(\textbf{W}_1 \textbf{e}_i^{(k)} + \sum_{u\in \mathcal{N}_i} \frac{1}{\sqrt{|\Set{N}_{u}||\Set{N}_{i}|}}(\Mat{W}_{1}\Mat{e}_{u}^{(k)} + \Mat{W}_{2}(\Mat{e}_{u}^{(k)}\odot\Mat{e}_{i}^{(k)}))\Big),
+\end{aligned}
+\end{equation}
+where $\textbf{e}_{u}^{(k)}$ and $\textbf{e}_{i}^{(k)}$ respectively denote the refined embedding of user $u$ and item $i$ after $k$ layers propagation, $\sigma$ is the nonlinear activation function,
+%SPACE
+%to endorse NGCF nonlinearity (set as LeakyReLU~\cite{LeakyRelu} in the original paper), 
+$\Set{N}_{u}$ denotes the set of items that are interacted by user $u$, $\Set{N}_{i}$ denotes the set of users that interact with item $i$, and $\textbf{W}_1$ and $\textbf{W}_2$ are trainable weight matrix to perform feature transformation in each layer. 
+%SPACE
+%The symmetric normalization $\frac{1}{\sqrt{|\Set{N}_{u}||\Set{N}_{i}|}}$ is to handle the varying number of neighbors of different users (items), and is beneficial for numerical stability. 
+%The multi-layer NGCF just stacks multiple propagation layers which can capture high-order proximity relations in the user-item graph. 
+By propagating $L$ layers, NGCF obtains
+%Given the predefined number of layers $L$, NGCF performs $L$ layers of embedding propagation and obtains 
+$L+1$ embeddings to describe a user ($\textbf{e}_u^{(0)}, \textbf{e}_u^{(1)}, ..., \textbf{e}_u^{(L)}$) and an item ($\textbf{e}_i^{(0)}, \textbf{e}_i^{(1)}, ..., \textbf{e}_i^{(L)}$). It then concatenates these $L+1$ embeddings to obtain the final user embedding and item embedding, using inner product to generate the prediction score. 
+%SPACE
+%As can be seen, this propagation layer aggregates the former-layer embeddings of the connected neighbors in user-item graph. Such neighborhood aggregation function is also called as \textit{graph convolution} in GCN terminologies. 
+
+NGCF largely follows the standard GCN~\cite{GCN}, including the use of nonlinear activation function $\sigma(\cdot)$ and feature transformation matrices $\textbf{W}_1$ and $\textbf{W}_2$. However, we argue that the two operations are not as useful for collaborative filtering. In  semi-supervised node classification, each node has rich semantic features as input, such as the title and abstract words of a paper. Thus performing multiple layers of nonlinear transformation is beneficial to feature learning. Nevertheless, in collaborative filtering, each node of user-item interaction graph only has an ID as input which has no concrete semantics. In this case, performing multiple nonlinear transformations will not contribute to learn better features; even worse, it may add the difficulties to train well. In the next subsection, we provide empirical evidence on this argument. 
+
+\begin{table}[t]
+\caption{Performance of NGCF and its three variants.% that remove nonlinear activation (NGCF-n), feature transformation (NGCF-f) and both (NGCF-fn), respectively. 
+}
+\vspace{-10px}
+\label{tab:pre}
+%\resizebox{0.48\textwidth}{!}{
+\begin{tabular}{l|c c|c c}
+\hline
+ & \multicolumn{2}{c|}{\textbf{Gowalla}} & \multicolumn{2}{c}{\textbf{Amazon-Book}} \\ \hline
+ & \textbf{recall} & \textbf{ndcg} &  \textbf{recall} & \textbf{ndcg} \\ \hline\hline
+%NGCF (paper) &  0.1547 & 0.2237 & 0.0438 & 0.0926 & 0.0344 & 0.0630 \\
+%NGCF (re-run) & 0.1568 & 0.2274 & 0.0559 & 0.1037 & 0.0339 & 0.0626 \\
+NGCF &  0.1547 & 0.1307 & 0.0330 & 0.0254 \\ \hline 
+NGCF-f    & 0.1686 & 0.1439 & 0.0368 & 0.0283 \\ 
+NGCF-n & 0.1536 & 0.1295 & 0.0336 & 0.0258 \\  
+NGCF-fn   & 0.1742 & 0.1476 & 0.0399 & 0.0303 \\ \hline
+%NGCF_fni  & $\Mat{0.1733}$ & $\Mat{0.2435}$ & $\Mat{0.0616}$ & $\Mat{0.1120}$ & $\Mat{0.0378}$ & $\Mat{0.0684}$ \\ 
+\end{tabular}%}
+%\scriptsize{Note that the scores of NGCF on Gowalla and Amazon-Book are directly copied from the original paper~\cite{NGCF} since the data, data splits, and evaluation protocol are exactly the same. As the released Yelp2018 dataset by \cite{NGCF} is different from the one used in the paper, we re-run NGCF on Yelp2018.}
+%\\\scriptsize{The scores of NGCF are copied from the Table 3 of \cite{NGCF}, since the data, data splits, and evaluation protocol are exactly the same.}
+\end{table}
+%Do three ablation studies to show the unnecessary designs in NGCF: 1) feature transformation, 2) non-linearity, and 3) the interaction between e_i and e_u. 
+
+\begin{figure*}[t]
+	\centering
+	\subfigure[Training loss on Gowalla]{\includegraphics[width=0.235\textwidth]{gowalla_tr_loss.pdf}}
+	\subfigure[Testing recall on Gowalla]{\includegraphics[width=0.235\textwidth]{gowalla_recall.pdf}}
+	\subfigure[Training loss on Amazon-Book]{\includegraphics[width=0.235\textwidth]{amazon-book_tr_loss.pdf}}
+	\subfigure[Testing recall on Amazon-Book]{\includegraphics[width=0.235\textwidth]{amazon-book_recall.pdf}}
+	\vspace{-15pt}
+	\caption{Training curves (training loss and testing recall) of NGCF and its three simplified variants.} \vspace{-10pt}
+	\label{fig:train-epochs}
+\end{figure*}
+
+\subsection{Empirical Explorations on NGCF} \label{ss:ngcf_study}
+We conduct ablation studies on NGCF to explore the effect of nonlinear activation and feature transformation. We use the codes released by the authors of NGCF\footnote{\url{https://github.com/xiangwang1223/neural_graph_collaborative_filtering}}, running experiments on the same data splits and evaluation protocol to keep the comparison as fair as possible. 
+%SPACE
+%\footnote{Note that the Yelp2018 dataset released by the authors is different from the one used in the original NGCF paper, since the authors claim that there are some issues in their experimented Yelp2018 data. They share us the revised version of the data, so we re-run NGCF on the revised Yelp2018 data. For other two datasets, we directly copy the scores reported in the NGCF paper to Table~\ref{tab:pre}.}. 
+Since the core of GCN is to refine embeddings by propagation, we are more interested in the embedding quality under the same embedding size. Thus, we change the way of obtaining final embedding from concatenation (i.e., $\Mat{e}^{*}_{u}= \Mat{e}^{(0)}_{u}\Vert\cdots\Vert\Mat{e}^{(L)}_{u}$) to sum (i.e., $\Mat{e}^{*}_{u}= \Mat{e}^{(0)}_{u} + \cdots + \Mat{e}^{(L)}_{u}$).
+%; and the same change applies to the final item embedding. 
+Note that this change has little effect on NGCF's performance, but makes the following ablation studies more indicative of the embedding quality refined by GCN. 
+
+We implement three simplified variants of NGCF:
+\begin{itemize}[leftmargin=*]
+\item NGCF-f, which removes the feature transformation matrices $\textbf{W}_1$ and $\textbf{W}_2$.
+\item NGCF-n, which removes the non-linear activation function $\sigma$.
+\item NGCF-fn, which removes both the feature transformation matrices and non-linear activation function. 
+\end{itemize}
+
+For the three variants, we keep all hyper-parameters (e.g., learning rate, regularization coefficient, dropout ratio, etc.)  same as the optimal settings of NGCF. 
+We report the results of the 2-layer setting on the Gowalla and Amazon-Book datasets in Table \ref{tab:pre}. 
+As can be seen, removing feature transformation (i.e., NGCF-f) leads to consistent improvements over NGCF on all three datasets. In contrast, removing nonlinear activation does not affect the accuracy that much. However, if we remove nonlinear activation on the basis of removing feature transformation (i.e., NGCF-fn), the performance is improved significantly. From these observations, we conclude the findings that: 
+
+(1) Adding feature transformation imposes negative effect on NGCF, since removing it in both models of NGCF and NGCF-n improves the performance significantly; 
+
+(2) Adding nonlinear activation affects slightly when feature transformation is included, but it imposes negative effect when feature transformation is disabled. %This is evidenced from that NGCF performs slightly better than NGCF-n, but NGCF-fn performs much better than NGCF-f. 
+
+(3) As a whole, feature transformation and nonlinear activation impose rather negative effect on NGCF, since by removing them simultaneously, NGCF-fn demonstrates large improvements over NGCF (9.57\% relative improvement on recall). 
+
+To gain more insights into the scores obtained in Table \ref{tab:pre} and understand why NGCF deteriorates with the two operations, we plot the curves of model status recorded by training loss and testing recall in Figure \ref{fig:train-epochs}. 
+As can be seen, NGCF-fn achieves a much lower training loss than NGCF, NGCF-f, and NGCF-n along the whole training process. Aligning with the curves of testing recall, we find that such lower training loss successfully transfers to better recommendation accuracy.
+The comparison between NGCF and NGCF-f shows the similar trend, except that the improvement margin is smaller. 
+
+From these evidences, we can draw the conclusion that the deterioration of NGCF stems from the training difficulty, rather than overfitting. 
+Theoretically speaking, NGCF has higher representation power than NGCF-f, since setting the weight matrix $\textbf{W}_1$ and $\textbf{W}_2$ to identity matrix $\textbf{I}$ can fully recover the NGCF-f model. However, in practice, NGCF demonstrates higher training loss and worse generalization performance than NGCF-f. 
+And the incorporation of nonlinear activation further aggravates the discrepancy between representation power and generalization performance. To round out this section, we claim that when designing model for recommendation, it is important to perform rigorous ablation studies to be clear about the impact of each operation. Otherwise, including less useful operations will complicate the model unnecessarily, increase the training difficulty, and even degrade model effectiveness. 

@@ -1,0 +1,233 @@
+
+
+
+
+\section{BERT4Rec}
+Before going into the details, we first introduce the research problem, the basic concepts, and the notations in this paper.
+
+\subsection{Problem Statement}
+In sequential recommendation, let $\mathcal{U}{=}\{u_1,u_2,\dots,u_{\vert\mathcal{U}\vert}\}$ denote a set of users, $\mathcal{V}{=}\{v_1,v_2,\dots,v_{|\mathcal{V}|}\}$ be a set of items, and list $\mathcal{S}_u{=}[v_1^{(u)},\dots,v_t^{(u)},\dots,v_{n_u}^{(u)}]$ denote the interaction sequence in chronological order for user $u \in \mathcal{U}$, where $v_t^{(u)} \in \mathcal{V}$ is the item that $u$ has interacted with at time step\footnote{Here, following~\cite{Rendle:WWW2010:FPM,Kang:ICDM2018:SAS}, we use the relative time index instead of absolute time index for numbering interaction records.} $t$ and $n_u$ is the the length of interaction sequence for user $u$.
+Given the interaction history $\mathcal{S}_u$, sequential recommendation aims to predict the item that user $u$ will interact with at time step $n_{u} + 1$.
+It can be formalized as modeling the probability over all possible items for user $u$ at time step $n_{u} {+} 1$:
+\begin{equation*}
+    p\bigl(v_{n_u+1}^{(u)}=v|\ \mathcal{S}_u\bigr)
+\end{equation*}
+
+
+\subsection{Model Architecture}
+
+Here, we introduce a new sequential recommendation model called \textbf{BERT4Rec}, which adopts \textbf{B}idirectional \textbf{E}ncoder \textbf{R}epresentations from \textbf{T}ransformers to a new task, sequential \textbf{R}ecommendation.
+It is built upon the popular self-attention layer, ``Transformer layer''. %
+
+As illustrated in Figure~\ref{fig:model}b, BERT4Rec is stacked by $L$ bidirectional Transformer layers.
+At each layer, it iteratively revises the representation of every position by exchanging information across all positions at the previous layer in parallel with the Transformer layer.
+Instead of learning to pass relevant information forward step by step as RNN based methods did in Figure~\ref{fig:model}d, self-attention mechanism endows BERT4Rec with the capability to directly capture the dependencies in any distances.
+This mechanism results in a global receptive field, while CNN based methods like Caser usually have a limited receptive field.
+In addition, in contrast to RNN based methods, self-attention is straightforward to parallelize.
+
+
+
+
+Comparing Figure~\ref{fig:model}b,~\ref{fig:model}c, and~\ref{fig:model}d, the most noticeable difference is that SASRec and RNN based methods are all left-to-right unidirectional architecture, while our BERT4Rec uses bidirectional self-attention to model users' behavior sequences.
+In this way, our proposed model can obtain more powerful representations of users' behavior sequences to improve  recommendation performances.
+
+
+
+
+
+
+
+\subsection{Transformer Layer}
+
+
+As illustrated in Figure~\ref{fig:model}b, given an input sequence of length $t$, %
+we iteratively compute hidden representations $\bm{h}_i^{l}$ at each layer $l$ for each position $i$ simultaneously by applying the Transformer layer from~\cite{Vaswani:nips2017:Attention}.
+Here, we stack $\bm{h}_i^{l} \in \mathbb{R}^d$ together into matrix $\bm{H}^{l} {\in} \mathbb{R}^{t\times d}$ since we compute attention function on all positions simultaneously in practice. 
+As shown in Figure~\ref{fig:model}a, the Transformer layer \texttt{Trm} contains two sub-layers, a \textit{Multi-Head Self-Attention} sub-layer and a \textit{Position-wise Feed-Forward Network}.
+
+\textbf{Multi-Head Self-Attention}.
+Attention mechanisms have become an integral part of sequence modeling in a variety of tasks, allowing capturing the dependencies between representation pairs without regard to their distance in the sequences.
+Previous work has shown that it is beneficial to jointly attend to information from different representation subspaces at different positions~\cite{Vaswani:nips2017:Attention,Li:emnlp2018:Multi,Devlin:2018:BERT}.
+Thus, we here adopt the multi-head self-attention instead of performing a single attention function.
+Specifically, multi-head attention first linearly projects $\bm{H}^l$ into $h$ subspaces, with different, learnable linear projections, and then apply $h$ attention functions in parallel to produce the output representations which are concatenated and once again projected:
+\begin{equation}
+    \begin{aligned}
+        \mathtt{MH}(\bm{H}^{l}) &= [\text{head}_1; \text{head}_2; \dots; \text{head}_h]\bm{W}^{O} \\
+        \text{head}_i &= \mathtt{Attention}\bigl(\bm{H}^l\bm{W}_i^Q, \bm{H}^l\bm{W}_i^K, \bm{H}^l\bm{W}_i^V \bigr)
+    \end{aligned}
+\label{eq:mh}
+\end{equation} %
+where the projections matrices for each head $\bm{W}_i^Q \in \mathbb{R}^{d \times d/h}$, $\bm{W}_i^K \in \mathbb{R}^{d \times d/h}$, $\bm{W}_i^V \in \mathbb{R}^{d \times d/h}$, and $\bm{W}_i^O \in \mathbb{R}^{d \times d}$ are learnable parameters. %
+Here, we omit the layer subscript $l$ for the sake of simplicity.
+In fact, these projection parameters are not shared across the layers.
+Here, the $\mathtt{Attention}$ function is \textit{Scaled Dot-Product Attention}: %
+\begin{equation}
+    \mathtt{Attention}(\bm{Q}, \bm{K}, \bm{V}) = \mathrm{softmax} \biggl(\frac{\bm{Q}\bm{K}^{\top}}{\sqrt{d/h}}\biggr) \bm{V}
+    \label{eq:scale_dot}
+\end{equation}
+where \textit{query} $\bm{Q}$, \textit{key} $\bm{K}$, and \textit{value} $\bm{V}$ are projected from the same matrix $\bm{H}^l$ with different learned projection matrices as in Equation~\ref{eq:mh}. %
+The \textit{temperature} $\sqrt{d/h}$ is introduced to produce a softer attention distribution for avoiding extremely small gradients~\cite{Hinton:nips2014:Distilling,Vaswani:nips2017:Attention}.
+
+
+\textbf{Position-wise Feed-Forward Network}.
+As described above, the self-attention sub-layer is mainly based on linear projections.
+To endow the model with nonlinearity and interactions between different dimensions, we apply a \textit{Position-wise Feed-Forward Network} to the outputs of the self-attention sub-layer, separately and identically at each position.
+It consists of two affine transformations with a Gaussian Error Linear Unit (\texttt{GELU}) activation in between:
+\begin{equation}
+    \begin{aligned}
+      \texttt{PFFN}(\bm{H}^l) & = \bigl[\mathtt{FFN}(\bm{h}_1^{l})^{\top}; \dots; \mathtt{FFN}(\bm{h}_t^{l})^{\top}\bigr]^{\top}\\
+       \mathtt{FFN}(\bm{x}) &= \texttt{GELU}\bigl(\bm{x} \bm{W}^{(1)}+\bm{b}^{(1)}\bigr)\bm{W}^{(2)} + \bm{b}^{(2)}\\
+       \texttt{GELU}(x) &= x \Phi(x)
+    \end{aligned}
+    \label{eq:ffn}
+\end{equation}
+where $\Phi(x)$ is the cumulative distribution function of the standard gaussian distribution, $\bm{W}^{(1)}\in \mathbb{R}^{d\times 4d}$, $\bm{W}^{(2)}\in \mathbb{R}^{4d\times d}$, $\bm{b}^{(1)}\in \mathbb{R}^{4d}$ and $\bm{b}^{(2)}\in \mathbb{R}^{d}$ are learnable parameters and shared across all positions.
+We omit the layer subscript $l$ for convenience.
+In fact, these parameters are different from layer to layer.
+In this work, following OpenAI GPT~\cite{Radford:2018:GPT} and BERT~\cite{Devlin:2018:BERT}, we use a smoother \texttt{GELU}~\cite{Hendrycks:gleu} activation rather than the standard \texttt{ReLu} activation. %
+
+
+\textbf{Stacking Transformer Layer}.
+As elaborated above, we can easily capture item-item interactions across the entire user behavior sequence using self-attention mechanism.
+Nevertheless, it is usually beneficial to learn more complex item transition patterns by stacking the self-attention layers.
+However, the network becomes more difficult to train as it goes deeper.
+Therefore, we employ a residual connection~\cite{He:cvpr2016:resnet} around each of the two sub-layers as in Figure~\ref{fig:model}a, followed by layer normalization~\cite{Lei:Layer}.
+Moreover, we also apply dropout~\cite{Srivastava:jmlr15:Dropout} to the output of each sub-layer, before it is normalized. %
+That is, the output of each sub-layer is $\texttt{LN}(\bm{x} + \texttt{Dropout}(\text{sublayer}(\bm{x})))$, where $\text{sublayer}(\cdot)$ is the function implemented by the sub-layer itself, $\texttt{LN}$ is the layer normalization function defined in~\cite{Lei:Layer}. %
+We use $\texttt{LN}$ to normalize the inputs over all the hidden units in the same layer for stabilizing and accelerating the network training.
+
+In summary, BERT4Rec refines the hidden representations of each layer as follows:
+\begin{align}
+    \bm{H}^l &= \mathtt{Trm}\bigl(\bm{H}^{l-1}\bigr), \quad \forall i \in [1,\dots, L] \\
+    \mathtt{Trm}(\bm{H}^{l-1}) &= \mathtt{LN}\Bigl(\bm{A}^{l-1} +  \mathtt{Dropout}\bigl(\mathtt{PFFN}(\bm{A}^{l-1})\bigr)\Bigr) \\
+    \bm{A}^{l-1} &= \mathtt{LN}\Bigr(\bm{H}^{l-1} + \mathtt{Dropout}\bigl(\mathtt{MH}(\bm{H}^{l-1})\bigr)\Bigr) 
+\end{align}
+
+
+\subsection{Embedding Layer}
+As elaborated above, without any recurrence or convolution module, the Transformer layer $\mathtt{Trm}$ is not aware of the order of the input sequence.
+In order to make use of the sequential information of the input, we inject \textit{Positional Embeddings} into the input item embeddings at the bottoms of the Transformer layer stacks.
+For a given item $v_i$, its input representation $\bm{h}_i^0$ is constructed by summing the corresponding item and positional embedding:
+\begin{equation*}
+    \begin{aligned}
+        \bm{h}_{i}^0 &= \bm{v}_i + \bm{p}_i
+    \end{aligned}
+\end{equation*}
+where $\bm{v}_i {\in} \bm{E}$ is the $d-$dimensional embedding for item $v_i$, $\bm{p}_i {\in} \bm{P}$ is the $d-$dimensional positional embedding for position index $i$.
+In this work, we use the learnable positional embeddings instead of the fixed sinusoid embeddings in~\cite{Vaswani:nips2017:Attention} for better performances.
+The positional embedding matrix $\bm{P} \in \mathbb{R}^{N\times d}$ allows our model to identify which portion of the input it is dealing with.
+However, it also imposes a restriction on the maximum sentence length $N$ that our model can handle.
+Thus, we need to truncate the the input sequence $[v_1,\dots,v_t]$ to the last $N$ items $[v_{t-N+1}^{u},\dots,v_t]$ if $t>N$.
+
+\subsection{Output Layer}
+
+After $L$ layers that hierarchically exchange information across all positions in the previous layer, we get the final output $\bm{H}^L$ for all items of the input sequence.
+Assuming that we mask the item $v_t$ at time step $t$, we then predict the masked items $v_t$ base on $\bm{h}_t^L$ as shown in Figure~\ref{fig:model}b.
+Specifically, we apply a two-layer feed-forward network with \texttt{GELU} activation in between to produce an output distribution over target items:
+\begin{equation}
+    P(v) = \mathrm{softmax}\bigl(\mathtt{GELU}(\bm{h}_t^L \bm{W}^P +\bm{b}^P) \bm{E}^{\top} + \bm{b}^O \bigr)
+    \label{eq:prob}
+\end{equation}
+where $\bm{W}^P$ is the learnable projection matrix, $\bm{b}^P$, and $\bm{b}^O$ are bias terms, $\bm{E}\in \mathbb{R}^{|\mathcal{V}|\times d}$ is the embedding matrix for the item set $\mathcal{V}$.
+We use the shared item embedding matrix in the input and output layer for alleviating overfitting and reducing model size.
+
+
+\subsection{Model Learning}
+\label{sec:ml}
+
+\textbf{Training}. 
+Conventional unidirectional sequential recommendation models usually train the model by predicting the next item for each position in the input sequence as illustrated in Figure~\ref{fig:model}c and~\ref{fig:model}d.
+Specifically, the target of the input sequence $[v_1,\dots,v_{t}]$ is a shifted version $[v_2,\dots,v_{t+1}]$.
+However, as shown in Figure~\ref{fig:model}b, jointly conditioning on both left and right context in a bidirectional model would cause the final output representation of each item to contain the information of the target item.
+This makes predicting the future become trivial and the network would not learn anything useful.
+A simple solution for this issue is to create $t-1$ samples (subsequences with next items like ([$v_1$], $v_2$) and ([$v_1,v_2$], $v_3$)) from the original length $t$ behavior sequence and then encode each historical subsequence with the bidirectional model to predict the target item. 
+However, this approach is very time and resources consuming since we need to create a new sample for each position in the sequence and predict them separately.
+
+In order to efficiently train our proposed model, we apply a new objective: \textit{Cloze} task~\cite{Wilson:Cloze} (also known as ``Masked Language Model'' in~\cite{Devlin:2018:BERT}) to sequential recommendation.
+It is a test consisting of a portion of language with some words removed, where the participant is asked to fill the missing words.
+In our case, for each training step, we randomly mask $\rho$ proportion of all items in the input sequence (\textit{i.e.}, replace with special token ``\texttt{[mask]}''), and then predict the original ids of the masked items based solely on its left and right context.
+For example: 
+\begin{figure}[h]
+\centering
+\resizebox{0.97\linewidth}{!}{
+\begin{tikzpicture}[decoration={random steps,segment length=3mm, amplitude=0.5pt}]
+\node[] (e1) at (0, 0) {\textbf{Input}: $[v_1,v_2,v_3,v_4,v_5]$};
+\node[right of=e1, node distance=5.1cm] (e2)  {$[v_1,$ {\small$\mathtt{[mask]}_1$}$, v_3,$ {\small$\mathtt{[mask]}_2$}$, v_5]$};
+\node[below of=e1, node distance=0.5cm, xshift=0.68cm] (e3)  {\textbf{Labels}: {\small$\mathtt{[mask]}_1$} $= v_2$, ~~ {\small$\mathtt{[mask]}_2$} $= v_4$};
+\draw[FARROW] (e1) -> (e2) ;
+\node[right of=e1, node distance=2.45cm, yshift=0.1cm] (e4)  {\scriptsize randomly mask};
+
+\draw[decorate]  ($(e3.south west)+(-0.1, -0.1)$) rectangle ($(e2.north east)+(0.1, 0.1)$);
+
+\end{tikzpicture}}
+\end{figure}
+
+\noindent The final hidden vectors corresponding to ``\texttt{[mask]}'' are fed into an output softmax over the item set, as in conventional sequential recommendation.
+Eventually, we define the loss for each masked input $\mathcal{S}_u^{\prime}$ as the negative log-likelihood of the masked targets: %
+\begin{equation}
+    \mathcal{L} = \frac{1}{|\mathcal{S}_u^m|} \sum_{v_m\in \mathcal{S}_u^m} -\log P(v_m=v_m^{*}|\mathcal{S}_u^{\prime} )
+    \label{eq:loss}
+\end{equation}
+where $\mathcal{S}_u^{\prime}$ is the masked version for user behavior history $\mathcal{S}_u$, $\mathcal{S}_u^m$ is the random masked items in it, $v_m^*$ is the true item for the masked item $v_m$, and the probability $P(\cdot)$ is defined in Equation~\ref{eq:prob}.
+
+An additional advantage for Cloze task is that it can generate more samples to train the model.
+Assuming a sequence of length $n$, conventional sequential predictions in Figure~\ref{fig:model}c and~\ref{fig:model}d  produce $n$ unique samples for training, while BERT4Rec can obtain $\binom{n}{k}$ samples (if we randomly mask $k$ items) in multiple epochs.
+It allows us to train a more powerful bidirectional representation model.
+
+
+
+
+\textbf{Test}.
+As described above, we create a mismatch between the training and the final sequential recommendation task since the Cloze objective is to predict the current masked items while sequential recommendation aims to predict the future.
+To address this, we append the special token ``\texttt{[mask]}'' to the end of user's behavior sequence, and then predict the next item based on the final hidden representation of this token.
+To better match the sequential recommendation task (\textit{i.e.}, predict the last item), we also produce samples that only mask the last item in the input sequences during training.
+It works like fine-tuning for sequential recommendation and can further improve the recommendation performances.
+
+\subsection{Discussion}
+
+Here, we discuss the relation of our model with previous related work.
+
+\textbf{SASRec}. Obviously, SASRec is a left-to-right unidirectional version of our BERT4Rec with single head attention and causal attention mask.
+Different architectures lead to different training methods.
+SASRec predicts the next item for each position in a sequence, while BERT4Rec predicts the masked items in the sequence using Cloze objective.
+
+\textbf{CBOW \& SG}. Another very similar work is Continuous Bag-of-Words (CBOW) and Skip-Gram (SG)~\cite{Mikolov:cbow}.
+CBOW predicts a target word using the average of all the word vectors in its context (both left and right).
+It can be seen as a simplified case of BERT4Rec, if we use one self-attention layer in BERT4Rec with uniform attention weights on items, unshare item embeddings, remove the positional embedding, and only mask the central item.
+Similar to CBOW, SG can also be seen as a simplified case of BERT4Rec following similar reduction operations (mask all items except only one).
+From this point of view, Cloze can be seen as a general form for the objective of CBOW and SG.
+Besides, CBOW uses a simple aggregator to model word sequences since its goal is to learn good word representations, not sentence representations.
+On the contrary, we seek to learn a powerful behavior sequence representation model (deep self-attention network in this work) for making recommendations.
+
+
+
+\textbf{BERT}. Although our BERT4Rec is inspired by the BERT in NLP, it still has several differences from BERT:
+\begin {enumerate*}[label=\bfseries\itshape\alph*\upshape)]
+\item The most critical difference is that BERT4Rec is an end-to-end model for sequential recommendation, while BERT is a pre-training model for sentence representation.
+BERT leverages large-scale task-independent corpora to pre-train the sentence representation model for various text sequence tasks since these tasks share the same background knowledge about the language.
+However, this assumption does not hold in the recommendation tasks.
+Thus we train BERT4Rec end-to-end for different sequential recommendation datasets.
+\item Different from BERT, we remove the next sentence loss and segment embeddings since BERT4Rec models a user's historical behaviors as only one sequence in sequential recommendation task.
+\end {enumerate*} 
+
+
+\iffalse
+\textbf{CBOW}. Another very similar work is Continuous Bag-of-Words (CBOW) model~\cite{Mikolov:cbow}.
+CBOW predicts a target word using the average of all the word vectors in its context (both left and right).
+It can be seen as a simplified case of BERT4Rec, if we replace the $L$-layer Transformer layer in BERT4Rec with uniform attention weights on items, use unshared item embeddings, remove the positional embedding, and only mask the central item.
+CBOW uses a simple aggregator to model word sequences since its goal is to learn good word representations, not sentence representations.
+On the contrary, we use a deep self-attention architecture to model the context since our goal is to learn a powerful sequence representation model for making recommendations.
+
+\textbf{SG}. Similar to CBOW, Skip-Gram (SG)~\cite{Mikolov:nips2013:DRW} can also be seen as a simplified case of BERT4Rec following the similar reduction operations.
+The difference is that we mask all items except only one for SG.
+From this point of view, Cloze is a general form for the objective of CBOW and SG.
+
+\textbf{FISM}. If we use one self-attention layer with uniform attention weights on items, use unshared item embeddings, and remove the position embedding, SASRec is reduced to FISM. 
+Thus our model can be viewed as an adaptive, hierarchical, sequential item similarity model for next item recommendation.
+\fi
+
+
+
+
+
+

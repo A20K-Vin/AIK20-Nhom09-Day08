@@ -1,0 +1,62 @@
+\section{Related Work}
+
+In this section, we will briefly review several lines of works closely related to ours, including general recommendation, sequential recommendation, and attention mechanism.
+
+
+\subsection{General Recommendation}
+
+Early works on recommendation systems typically use Collaborative  Filtering (CF) to model users' preferences based on their  interaction histories~\cite{Sarwar:www2001:ICF,Koren:ACF:2011}.
+Among various CF methods, Matrix Factorization (MF) is the most popular one, which projects users and items into a shared vector space and estimate a user's preference on an item by the inner product between their vectors~\cite{Salakhutdinov:nips2007:PMF,Koren:2009:MFT,Koren:ACF:2011}.
+Another line of work is item-based neighborhood methods \cite{Sarwar:www2001:ICF,Linden:ieee2003:ARI,Koren:kdd2008:FMN,Kabbur:kdd2013:FFI}.
+They estimate a user's preference on an item via measuring its similarities with the items in her/his interaction history using a precomputed item-to-item similarity matrix.
+
+
+
+
+Recently, deep learning has been revolutionizing the recommendation systems dramatically.
+The early pioneer work is a two-layer Restricted Boltzmann Machines (RBM) for collaborative filtering, proposed by \citeauthor{Salakhutdinov:icml2007:RBM}~\cite{Salakhutdinov:icml2007:RBM} in Netflix Prize\footnote{\url{https://www.netflixprize.com}}. %
+
+
+ One line of deep learning based methods seeks to improve the recommendation performance by integrating the distributed item representations learned from auxiliary information, \textit{e.g.}, text~\cite{Wang:kdd2015:CDL,Kim:recsys2016:CMF}, images~\cite{Wang:www2017:YIR,Kang:icdm2017:Visually}, and acoustic features~\cite{Oord:nips2013:Deep} into CF models. 
+Another line of work seeks to take the place of conventional matrix factorization. 
+For example, Neural Collaborative Filtering (NCF)~\cite{He:www2017:NCF} estimates user preferences via Multi-Layer Perceptions (MLP) instead of inner product, while AutoRec~\cite{Sedhain:www2015:AAM} and CDAE~\cite{Wu:wsdm2016:CDA} predict users' ratings using Auto-encoder framework.
+
+
+\subsection{Sequential Recommendation}
+
+Unfortunately, none of the above methods is for sequential recommendation since they all ignore the order in users' behaviors.
+
+Early works on sequential recommendation usually capture sequential patterns from user historical interactions using Markov chains (MCs).
+For example, \citeauthor{Shani:jmlr2005:MRS}~\cite{Shani:jmlr2005:MRS} formalized recommendation generation as a sequential optimization problem and employ Markov Decision Processes (MDPs) to address it. 
+Later, \citeauthor{Rendle:WWW2010:FPM}~\cite{Rendle:WWW2010:FPM} combine the power of MCs and MF to model both sequential behaviors and general interests by Factorizing Personalized Markov Chains (FPMC).
+Besides the first-order MCs, high-order MCs are also adopted to  consider more previous items~\cite{He:icdm16:Fusing,He:recsys2017:TR}. 
+ 
+Recently, RNN and its variants, Gated Recurrent Unit (GRU)~\cite{Cho:emnlp2014:gru} and Long Short-Term Memory (LSTM)~\cite{Hochreiter:LSTM:NC1997}, are becoming more and more popular for modeling user behavior sequences~\cite{Hidasi:ICLR2016:gru4rec,Yu:sigir2016:DRM,Wu:wsdm2017:RRN,Donkers:recsys2017:SUR,Quadrana:recsys2017:PSR,Li:cikm2017:NAS,Hidasi:CIKM2018:RNN}.
+The basic idea of these methods is to encode user's previous records into a vector (\textit{i.e.}, representation of user's preference which is used to make predictions) with various recurrent architectures and loss functions, including session-based GRU with ranking loss (GRU4Rec)~\cite{Hidasi:ICLR2016:gru4rec}, Dynamic REcurrent bAsket Model (DREAM)~\cite{Yu:sigir2016:DRM}, user-based GRU~\cite{Donkers:recsys2017:SUR}, attention-based GRU (NARM)~\cite{Li:cikm2017:NAS}, and improved GRU4Rec with new loss function (\textit{i.e.}, \texttt{BPR-max} and \texttt{TOP1-max}) and an improved sampling strategy~\cite{Hidasi:CIKM2018:RNN}.
+
+
+
+Other than recurrent neural networks, various deep learning models are also introduced for sequential recommendation~\cite{Chen:wsdm2018:SRU,Tang:WSDM2018:caser,Liu:kdd2018:STAMP,Kang:ICDM2018:SAS}. %
+For example, \citeauthor{Tang:WSDM2018:caser}~\cite{Tang:WSDM2018:caser} propose a Convolutional Sequence  Model (Caser) to learn sequential patterns using both horizontal and vertical convolutional filters.
+\citeauthor{Chen:wsdm2018:SRU}~\cite{Chen:wsdm2018:SRU} and \citeauthor{Huang:sigir2018:ISR}~\cite{Huang:sigir2018:ISR} employ Memory Network to improve sequential recommendation.
+STAMP captures both users' general interests and current interests using an MLP network with attention~\cite{Liu:kdd2018:STAMP}.
+
+ 
+
+\subsection{Attention Mechanism}
+
+Attention mechanism has shown promising potential in modeling sequential data, \textit{e.g.}, machine translation~\cite{Bahdanau:iclr2015,Vaswani:nips2017:Attention} and text classification~\cite{Yang:naacl2016:HAN}. 
+Recently, some works try to employ the attention mechanism to improve recommendation performances and interpretability~\cite{Li:cikm2017:NAS,Liu:kdd2018:STAMP}.
+For example, \citeauthor{Li:cikm2017:NAS}~\cite{Li:cikm2017:NAS} incorporate an attention mechanism into GRU to capture both the user's sequential behavior and main purpose in session-based recommendation.
+
+
+\input{model_fig}
+
+The works mentioned above basically treat attention mechanism as an additional component to the original models. %
+In contrast, Transformer~\cite{Vaswani:nips2017:Attention} and BERT~\cite{Devlin:2018:BERT} are built solely on multi-head self-attention and achieve state-of-the-art results on text sequence modeling.
+Recently, there is a rising enthusiasm for applying purely attention-based neural networks to model sequential data for their effectiveness and efficiency~\cite{Lin:iclr2017,Shaw:naacl2018:self,Liu:iclr2018:Generating,Radford:2018:GPT,Radford:2019:Language}.
+For sequential recommendation, \citeauthor{Kang:ICDM2018:SAS}~\cite{Kang:ICDM2018:SAS} introduce a two-layer \textit{Transformer decoder} (\textit{i.e.}, Transformer language model) called SASRec to capture user's sequential behaviors and achieve state-of-the-art results on several public datasets.
+SASRec is closely related to our work.
+However, it is still a unidirectional model using a casual attention mask.
+While we use a bidirectional model to encode users' behavior sequences with the help of Cloze task.
+

@@ -1,0 +1,102 @@
+\pgfplotsset{
+axis background/.style={fill=gallery},
+grid=both,
+  xtick pos=left,
+  ytick pos=left,
+  tick style={
+    major grid style={style=white,line width=1pt},
+    minor grid style=bgc,
+    draw=none
+    },
+  minor tick num=1,
+  ymajorgrids,
+	major grid style={draw=white},
+	y axis line style={opacity=0},
+	tickwidth=0pt,
+}
+
+
+\begin{figure}[t]
+\centering
+    \begin{tikzpicture}[scale=0.75]
+	\begin{groupplot}[
+    	width=10.5cm,
+    	height=6cm,
+	    group style={group size=1 by 1,
+	        horizontal sep = 40pt}, 
+	    xlabel=Mask Proportion $\rho$,
+        ylabel=\#samples/s,
+        xticklabels={0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9},
+        xtick={1,2,3,4,5,6,7,8,9},
+        ymajorgrids,
+        major grid style={draw=white},
+        y axis line style={opacity=0},
+        tickwidth=0pt,
+        scaled y ticks=base 10:-3,
+        tick scale binop=\times,
+        legend cell align={left},
+	    ] 
+	    \nextgroupplot[
+		legend style = {
+		  font=\scriptsize,
+          draw=none, 
+          fill=none,
+          column sep = 0pt, 
+          /tikz/every even column/.append style={column sep=0mm},
+          legend columns = -1, 
+          legend to name = grouplegend},
+		]
+		\addplot[thick,color=tuatara,mark=pentagon] coordinates {
+          (1, 3182)
+          (2, 2918)
+          (3, 2713)
+          (4, 2534)
+          (5, 2385)
+          (6, 2272)
+          (7, 2124)
+          (8, 2022)
+          (9, 1868)
+        }; \addlegendentry{ML-1m}
+         \addplot[thick,color=free_speech_aquamarine,mark=triangle*] coordinates {
+          (1, 8394)
+          (2, 7045)
+          (3, 6092)
+          (4, 5324)
+          (5, 4702)
+          (6, 4239)
+          (7, 3865)
+          (8, 3528)
+          (9, 3276)
+        }; \addlegendentry{Steam}
+        \addplot[thick,color=matisse,mark=square] coordinates {
+          (1, 5094)
+          (2, 3405)
+          (3, 2534)
+          (4, 2027)
+          (5, 1687)
+          (6, 1441)
+          (7, 1254)
+          (8, 1100)
+          (9, 995)
+        }; \addlegendentry{Beauty}
+        \addplot[thick,color=sun_shade,mark=*] coordinates {
+          (1, 2086)
+          (2, 1482)
+          (3, 1147)
+          (4, 933)
+          (5, 774)
+          (6, 673)
+          (7, 596)
+          (8, 532)
+          (9, 480)
+        }; \addlegendentry{ML-20m}
+        
+    	\end{groupplot}
+\node at ($(group c1r1) + (5pt, 70pt)$) {\ref{grouplegend}};
+\end{tikzpicture}
+    \caption{Training speed with different mask proportion $\rho$.}
+    \label{fig:mask_speed}
+\end{figure}
+
+
+  

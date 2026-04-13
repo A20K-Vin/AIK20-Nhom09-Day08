@@ -1,0 +1,78 @@
+\section{Related Work}\label{sec:related}
+% Our work is related two research lines --- collaborative filtering (CF) and graph neural networks (GNNs).
+
+\subsection{Collaborative Filtering}
+% \subsection{Collaborative Filtering}
+Collaborative Filtering (CF) is a prevalent technique in modern recommender systems~\cite{YoutubeRS,PinSage}.
+%, assuming that similar users would exhibit similar preference on items.
+One common paradigm of CF model is to parameterize users and items as embeddings, and learn the embedding parameters by reconstructing historical user-item interactions.
+%Here we focus on the most fundamental and universal scenario where the historical interactions are available for recommendation.
+%A direct approach is to leverage the ID information to characterize a user and an item~\cite{MF,BPRMF,NCF}.
+For example, earlier CF models like matrix factorization (MF)~\cite{MF,BPRMF} project the ID of a user (or an item) into an embedding vector. The recent neural recommender models like NCF~\cite{NCF} and LRML~\cite{tay2018latent} use the same embedding component, while enhance the interaction modeling with neural networks. 
+%Similarly, recent neural recommender models like as NCF~\cite{NCF} and LRML~\cite{tay2018latent} transform one-hot encoding of a user (or item) to an embedding vector. Having obtained user and item embeddings, linear functions or neural networks~\cite{NCF,DeepMF,tay2018latent} are built upon as the predictive models.
+
+% parameteriz via the embeddingse the preexisting features of users and items into embeddings, and then perform predictions based on the embeddings.
+% We roughly categorize existing CF works into three groups, based on the data source used to generate embeddings --- individual ID information, one-hop neighbors, and high-hop neighbors.
+
+% A line of research~\cite{MF,BPRMF,NCF} leverages only ID information to characterize a user and an item.
+% Specifically, earlier factorization model, such as matrix factorization (MF)~\cite{MF} and its variants, and recent neural recommender models, such as NCF~\cite{NCF} and ONCF~\cite{ONCF}, transform each ID of a user (or item) to an embedding vector, and then build linear functions and neural networks upon the embeddings as the predictive models, respectively.
+
+Beyond merely using ID information, another type of CF methods considers historical items as the pre-existing features of a user, towards better user representations.
+%Intuitively, personal interaction history (\ie items consumed before) provides support evidence on a user's preference.
+%Early works like FISM~\cite{FISM} and SLIM~\cite{SLIM} use the average or weighted sum of historical items' ID embeddings as a user representation.
+%Later on, SVD++~\cite{SVD++} aggregates such representation with the ID embedding of each user as her final representation,
+For example,  FISM~\cite{FISM} and SVD++~\cite{SVD++} use the weighted average of the ID embeddings of historical items as the target user's embedding. 
+%SPACE
+%Owing to the enhanced user representation, SVD++ has achieved great success in the Netflix rating prediction challenge.
+Recently, researchers realize that historical items have different contributions to shape personal interest.
+Towards this end, attention mechanisms are introduced to capture the varying contributions, such as ACF~\cite{ACF} and NAIS~\cite{NAIS}, to automatically learn the importance of each historical item. 
+%and enrich user representations.
+%SPACE
+%Such manners, essentially, build connections between items and cast the interaction modeling on user-item pairs to that on item-item pairs.
+When revisiting historical interactions as a user-item bipartite graph, the performance improvements can be attributed to the encoding of local neighborhood --- one-hop neighbors --- that improves the embedding learning.
+
+\subsection{Graph Methods for Recommendation}
+% A line of research~\cite{TrustWalker,BiRank,HOP-rec,DBLP:conf/www/ZhouZYSTZG08,RippleNet} exploits higher-order connectivity information between users and items to infer user preferences.
+% For instance, TrustWalker~\cite{TrustWalker} performs random walks to directly propagate the preference score.
+% Nevertheless, none of them leverage it in the embedding space.
+Another relevant research line is exploiting the user-item graph structure for recommendation.
+Prior efforts like ItemRank~\cite{ItemRank}, %and BiRank~\cite{BiRank}
+use the label propagation mechanism to directly propagate user preference scores over the graph, \ie encouraging connected nodes to have similar labels.
+%SPACE
+%Recently, GRMF~\cite{rao2015collaborative} and HOP-Rec~\cite{HOP-rec} respectively smooth node embeddings between one-hop and high-hop neighbors by devising additional loss terms. 
+%They encode the graph structure in the level of objective function, different from SVD++ that encodes the neighborhood information into the predictive model formulation. 
+% Beyond using ong representaID informationtion ability, , another type of CF methods considers historical items to profile a user, towards enriching user representations.
+% Early works like FISM~\cite{FISM} and SLIM~\cite{SLIM} construct a user representation via the average or weighted sum of the ID embeddings of historical items.
+% Later on, SVD++~\cite{SVDFeatures} integrates such representation with the user's ID embedding as her final representation, and has achieved great success in the rating prediction task.
+% However, items in the interaction history have different contributions to shape a user's preference, whose weights should be learned adaptively.
+% Towards this end, recent works, such as ACF~\cite{ACF}, NAIS~\cite{NAIS}, and DeepICF~\cite{DeepICF}, introduce attention mechanism to specify varying importance of historical items, instead of the simple average or weighted sum operation, so as to achieve better embeddings.
+% When revisiting historical interactions as a user-item bipartite graph, we attribute these improvements to encoding a user's ego network, \ie her one-hop neighbors, into the embedding learning.
+Recently emerged graph neural networks (GNNs) shine a light on modeling graph structure, especially high-hop neighbors, to guide the embedding learning~\cite{GCN,GraphSAGE}.
+%To be specific, GNN is originally proposed for node classification on attributed graph, where each node is described by rich input features (\eg attributes, contents).
+%The basic idea of GNN is to encode graph structure, as well as input features, into a better representation of each node.
+Early studies define graph convolution on the spectral domain, such as Laplacian eigen-decomposition~\cite{DBLP:journals/corr/BrunaZSL13} and Chebyshev polynomials~\cite{FirstGCN}, which are computationally expensive.
+Later on, GraphSage~\cite{GraphSAGE} and GCN~\cite{GCN} re-define graph convolution in the spatial domain, i.e., aggregating the embeddings of neighbors to refine the target node's embedding. Owing to its interpretability and efficiency, it quickly becomes a prevalent formulation of GNNs and is being widely used~\cite{DeepInf,Feng2019TOIS,zhao2019cross}.
+%Following on this work, a number of researches have introduced various designs, extensions, and approximations in graph convolution layers. Generally speaking, a common paradigm can be roughly abstracted as three stages: 1) feature transformation, which applies a neural network with nonlinear activation functions to the input feature of each neighboring node; 2) aggregation, which employs a pooling operation to combine all feature information from local neighborhood of a node; and 3) representation update, which leverages another neural network to combine the aggregated neighborhood representation with its current representation.
+Motivated by the strength of graph convolution, recent efforts like NGCF~\cite{NGCF}, GC-MC~\cite{GC-MC}, and PinSage~\cite{PinSage} adapt GCN to the user-item interaction graph, capturing CF signals in high-hop neighbors for recommendation.
+%To be more specific, a user's (or an item's) embedding is updated by the foregoing embedding propagation paradigm. By recursively performing such propagations, the information from high-hop neighbors is encoded into the representation of each user (or item). Due to the strong representation ability, they achieve the state-of-the-art performance for recommendation~\cite{NGCF}.
+
+It is worth mentioning that several recent efforts provide deep insights into GNNs~\cite{DeepInsights,ICLR19-APPNP,SGCN}, which inspire us developing LightGCN. Particularly, Wu et al.~\cite{SGCN} argues the unnecessary complexity of GCN, developing a simplified GCN (SGCN) model by removing nonlinearities and collapsing multiple weight matrices into one. 
+One main difference is that LightGCN and SGCN are developed for different tasks, thus the rationality of model simplification is different. Specifically, SGCN is for node classification, performing simplification for model interpretability and efficiency. In contrast, LightGCN is on collaborative filtering (CF), where each node has an ID feature only. Thus, we do simplification for a stronger reason: nonlinearity and weight matrices are useless for CF, and even hurt model training. For node classification accuracy, SGCN is on par with (sometimes weaker than) GCN. While for CF accuracy, LightGCN outperforms GCN by a large margin (over 15\% improvement over NGCF). 
+Lastly, another work conducted in the same time~\cite{LR-GCCF} also finds that the nonlinearity is unnecessary in NGCF and develops linear GCN model for CF. In contrast, our LightGCN makes one step further --- we remove all redundant parameters and retain only the ID embeddings, making the model as simple as MF. 
+
+%Through this way, SGCN improves the efficiency of GCN largely without sacrificing accuracy, and even outperforms GCN on some tasks. Inspired by SGCN, we thoroughly investigate the utility of neural operations in NGCF for recommendation. Although the downstream task is different (recommendation vs. node classification), our findings are consistent with the findings in SGCN~\cite{SGCN}, motivating us to develop the simple yet effective LightGCN method. 
+
+% To deepen the use of user-item structure, more recent works incorporate high-hop neighbors of users and items to better guide the embedding learning.
+% Towards this end, NGCF~\cite{NGCF}, GC-MC~\cite{GC-MC}, and SpectralCF~\cite{SpectralCF} get inspiration from graph neural networks (GNNs)~\cite{GCN,GAT,GraphSAGE}, directly employing the embedding propagation (\aka message passing) mechanism on the user-item graph to refine embeddings.
+% To be more specific, a user's (or an item's) embedding is updated by aggregating information from her (or its) one-hop neighbors, where the information being propagated is obtained by employing feature transformation with nonlinear activation function on the embedding of each neighbor.
+% By recursively performing such propagations, the information from high-hop neighbors is encoded into the representation of each user (or item).
+
+
+% \subsection{Graph Neural Network}
+% GNN is proposed to generate representation for graph structured data, having achieved the state-of-the-art performance in many graph learning tasks, such as node classification and graph classification.
+% In particular, in a graph, each node is described by its input features and related nodes; the basic idea of GNN is to encode such structural information of graph into the representation of each node.
+% Towards this end, earlier studies~\cite{DBLP:journals/corr/BrunaZSL13,FirstGCN} define expensive convolution layers on graph, such as Laplacian eigen-decomposition~\cite{DBLP:journals/corr/BrunaZSL13} and Chebyshev polynomials~\cite{FirstGCN}, in the spectral domain.
+% Later on, GCN~\cite{GCN} simplifies graph convolution operations and achieves great success.
+% Following on this work, a number of researches have introduced various designs, extensions, and approximations in graph convolution layers.
+% Generally speaking, a common paradigm can be roughly abstracted as three stages: 1) feature transformation, which applies a neural network with nonlinear activation functions to the input feature of each neighboring node; 2) aggregation, which employs a pooling operation to combine all feature information from local neighborhood of a node; and 3) representation update, which leverages another neural network to combine the aggregated neighborhood representation with its current representation.
+

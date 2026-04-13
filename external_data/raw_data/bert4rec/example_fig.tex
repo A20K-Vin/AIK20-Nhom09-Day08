@@ -1,0 +1,46 @@
+
+
+\begin{figure}
+\centering
+\resizebox{0.9\linewidth}{!}{
+\begin{tikzpicture}[]
+  
+\node[label={A}] (e1) at (0, 0) {\includegraphics[height=1.2cm, keepaspectratio]{figs/sample_g}};
+
+\node[left of=e1, node distance=1cm] (e0) {$\cdots$};
+
+\node[left of=e0, node distance=1.1cm, alice, skin=manhattan, minimum size=0.8cm] (alice) {user};
+
+\node[right of=alice, node distance=0.5cm] (in) {:};
+
+\node[right of=e1, node distance=1.4cm, label={B}] (e2) {\includegraphics[height=1.2cm, keepaspectratio]{figs/sample_d}};
+
+\node[right of=e2, node distance=1.4cm, label={C}] (e3) {\includegraphics[height=1.2cm, keepaspectratio]{figs/sample_c}};
+
+\node[right of=e3, node distance=1.4cm, label={D}] (e4) {\includegraphics[height=1.2cm, keepaspectratio]{figs/sample_e}};
+
+\node[right of=e4, node distance=1.2cm] (e5) {$\dots$};
+
+
+
+\node[below of=e1, node distance=1.3cm] (t1) {$t-3$};
+\node[below of=e2, node distance=1.3cm] (t2) {$t-2$};
+\node[below of=e3, node distance=1.3cm] (t3) {$t-1$};
+\node[below of=e4, node distance=1.3cm] (t4) {$t$};
+    
+\draw [thick, decorate, dotted, decoration={amplitude=5pt}] ([yshift=-7mm] e2.south west) -- ([yshift=4mm] e2.north west) node[midway,xshift=-0.55cm, rotate=90, align=center] (b) {};
+
+\draw [thick, decorate, dotted, decoration={amplitude=5pt, mirror}] ([yshift=-7mm] e4.south east) -- ([yshift=4mm] e4.north east) node[midway,xshift=-0.55cm, rotate=90, align=center] (e) {};
+
+\draw[-Latex] ($(e0.south)+(-0.4, -0.98)$) -- ++(7.1, 0);
+
+\foreach \x in {1,2,3,4}
+{
+    \draw[-, dashed] ($(e\x.south)+(0, 0.1)$) -> ($(t\x.north)+(0, -0.1)$) ;
+}
+    
+
+\end{tikzpicture}}
+\caption{An example of anonymous user click records on a popular E-commerce platform. Although user behaviors exhibit sequential dependencies over long time scales (\textit{e.g.}, from A to [B,C,D]), a user's actions in a short period are often random (\textit{e.g.}, the order in [B,C,D]).} 
+\label{fig:example}
+\end{figure}

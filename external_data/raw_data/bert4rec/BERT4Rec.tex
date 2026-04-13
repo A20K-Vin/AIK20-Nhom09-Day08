@@ -1,0 +1,158 @@
+
+
+
+
+
+\documentclass[sigconf]{acmart}
+
+\settopmatter{printacmref=true}
+
+\fancyhead{}
+
+\usepackage{balance}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08emT\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+    
+\usepackage{booktabs} %
+\usepackage{multirow}
+
+\usepackage[english]{babel}
+\usepackage[inline]{enumitem}
+
+\newcommand{\bmmax}{0}  
+\newcommand{\hmmax}{0}  
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{bbm}
+\usepackage{bm}
+\usepackage{scalerel} %
+
+\usepackage{subcaption}
+\usepackage{adjustbox}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{backgrounds}
+\usetikzlibrary{positioning, fit, mindmap, trees, calc,tikzmark,shapes}
+\usetikzlibrary{shapes.arrows, fadings, automata,tikzmark,decorations.pathreplacing,patterns}
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots}
+\pgfplotsset{compat=1.14}
+\usepackage{tikzpeople}
+
+\usepackage{graphicx}
+
+\usepackage{sistyle}
+\SIthousandsep{,}
+
+\input{color}
+
+
+
+\renewcommand{\arraystretch}{0.98}
+
+\setlength{\textfloatsep}{5pt plus 3pt minus 3pt}
+\setlength{\intextsep}{5pt plus 3pt minus 3pt}
+\setlength{\dbltextfloatsep}{5pt plus 3pt minus 3pt}
+\setlength{\abovecaptionskip}{5pt}
+\setlength{\belowcaptionskip}{5pt}
+
+\makeatletter
+\g@addto@macro\normalsize{%
+  \abovedisplayskip 4pt plus 2pt minus 3pt%
+  \belowdisplayskip \abovedisplayskip
+  \abovedisplayshortskip 4pt plus2pt  minus3pt%
+  \belowdisplayshortskip 4pt plus2pt minus3pt%
+}
+
+
+\makeatother
+
+
+\setcopyright{acmlicensed}
+
+\begin{document}
+
+\copyrightyear{2019} 
+\acmYear{2019} 
+\acmConference[CIKM '19]{The 28th ACM International Conference on Information and Knowledge Management}{November 3--7, 2019}{Beijing, China}
+\acmBooktitle{The 28th ACM International Conference on Information and Knowledge Management (CIKM '19), November 3--7, 2019, Beijing, China}
+\acmPrice{15.00}
+\acmDOI{10.1145/3357384.3357895}
+\acmISBN{978-1-4503-6976-3/19/11}
+
+\fancyhead{}
+
+\title[BERT4Rec]{BERT4Rec: Sequential Recommendation with Bidirectional Encoder Representations from Transformer}
+
+
+
+\author{Fei Sun, Jun Liu, Jian Wu, Changhua Pei, Xiao Lin, Wenwu Ou, and Peng Jiang}
+\affiliation{%
+  \institution{Alibaba Group, Beijing, China}
+  \city{}
+  \country{}
+}
+\email{{ofey.sf, yanhan.lj, joshuawu.wujian, changhua.pch, hc.lx, santong.oww, jiangpeng.jp}@alibaba-inc.com} 
+
+
+
+
+\begin{abstract}
+
+Modeling users' dynamic preferences from their historical behaviors is challenging and crucial for recommendation systems. 
+Previous methods employ sequential neural networks to encode users' historical interactions from left to right into hidden representations for making recommendations.
+Despite their effectiveness, we argue that such left-to-right unidirectional models are sub-optimal due to the limitations including:
+\begin {enumerate*}[label=\bfseries\itshape\alph*\upshape)]
+\item unidirectional architectures restrict the power of hidden representation in users' behavior sequences;
+\item they often assume a rigidly ordered sequence which is not always practical.
+\end {enumerate*}
+To address these limitations, we proposed a sequential recommendation model called \textbf{BERT4Rec}, which employs the deep bidirectional self-attention to model user behavior sequences.
+To avoid the information leakage and efficiently train the bidirectional model, we adopt the Cloze objective to sequential recommendation, predicting the random masked items in the sequence by jointly conditioning on their left and right context.
+In this way, we learn a bidirectional representation model to make recommendations by allowing each item in user historical behaviors to fuse information from both left and right sides.
+Extensive experiments on four benchmark datasets show that our model outperforms various state-of-the-art sequential models consistently.
+
+
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10002951.10003317.10003347.10003350</concept_id>
+<concept_desc>Information systems~Recommender systems</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Information systems~Recommender systems}
+
+
+
+\keywords{Sequential Recommendation; Bidirectional Sequential Model; Cloze}
+
+\maketitle
+
+\input{intro}
+\input{related}
+\input{model}
+\input{experiment}
+
+\section{Conclusion and Future Work}
+
+Deep bidirectional self-attention architecture has achieved tremendous success in language understanding.
+In this paper, we introduce a deep bidirectional sequential model called BERT4Rec for sequential recommendation.
+For model training, we introduce the Cloze task which predicts the masked items using both left and right context.
+Extensive experimental results on four real-world datasets show that our model outperforms state-of-the-art baselines.
+
+Several directions remain to be explored.
+A valuable direction is to incorporate rich item features (\textit{e.g.}, category and price for products, cast for movies) into BERT4Rec instead of just modeling item ids. %
+Another interesting direction for the future work would be introducing user component into the model for explicit user modeling when the users have multiple sessions.
+
+
+
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{BERT4Rec}
+
+\end{document}

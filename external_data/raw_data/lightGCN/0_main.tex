@@ -1,0 +1,159 @@
+\documentclass[sigconf]{acmart}
+\usepackage{booktabs} % For formal tables
+\usepackage{multirow}
+\usepackage{color}
+\usepackage{subfigure} % Written by Steven Douglas Cochran
+\usepackage{array}
+\usepackage{breqn}
+\usepackage{{inputenc}}
+\usepackage{balance}
+\usepackage{multirow,tabularx}
+\usepackage{longtable}
+\usepackage{booktabs,longtable}
+\usepackage{hhline}
+\usepackage[flushleft]{threeparttable}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{thmtools}
+\usepackage{enumitem}
+\usepackage{verbatim}
+\usepackage{amsfonts}
+\usepackage{hyperref}
+\hypersetup{colorlinks=false,linkcolor=blue,urlcolor=blue,citecolor=red}
+\epstopdfsetup{update}
+
+\newcommand\norm[1]{\left\lVert#1\right\rVert}
+\newcommand{\Lapl}{\mathbf{\mathop{\mathcal{L}}}}
+\newcommand{\Trans}[1]{{#1}^{\top}}
+\newcommand{\Trace}[1]{tr\left({#1}\right)}
+\newcommand{\Bracs}[1]{\left({#1}\right)}
+\newcommand{\Mat}[1]{\mathbf{#1}}
+\newcommand{\MatS}[3]{\mathbf{#1}^{#2}_{#3}}
+\newcommand{\Space}[1]{\mathbb{#1}}
+\newcommand{\Set}[1]{\mathcal{#1}}
+\newcommand{\vectornorm}[1]{\left|\left|#1\right|\right|}
+\newcommand{\bpi}{\boldsymbol{\pi}}
+\newcommand{\BlockMat}[2]{\left[\begin{matrix}#1\\#2\end{matrix}\right]}
+\newcommand{\BlockMatSquare}[4]{\left[\begin{matrix}#1 & #2\\#3 & #4\end{matrix}\right]}
+
+\newcommand{\ie}{\emph{i.e., }}
+\newcommand{\eg}{\emph{e.g., }}
+\newcommand{\etal}{\emph{et al.}}
+\newcommand{\st}{\emph{s.t. }}
+\newcommand{\etc}{\emph{etc.}}
+\newcommand{\wrt}{\emph{w.r.t. }}
+\newcommand{\cf}{\emph{cf. }}
+\newcommand{\aka}{\emph{aka. }}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+
+
+\hyphenpenalty=10000
+\tolerance=5000
+
+
+% defining the \BibTeX command - from Oren Patashnik's original BibTeX documentation.
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08emT\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\copyrightyear{2020} \acmYear{2020} \setcopyright{acmlicensed}\acmConference[SIGIR '20]{Proceedings of the 43rd International ACM SIGIR Conference on Research and Development in Information Retrieval}{July 25--30, 2020}{Virtual Event, China} \acmBooktitle{Proceedings of the 43rd International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR '20), July 25--30, 2020, Virtual Event, China} \acmPrice{15.00} \acmDOI{10.1145/3397271.3401063} \acmISBN{978-1-4503-8016-4/20/07}
+
+\begin{document}
+\fancyhead{}
+
+\title{LightGCN: Simplifying and Powering Graph Convolution Network for Recommendation}
+%\title{Lightening Graph Convolution Network for Recommendation}
+
+\author{Xiangnan He}
+\affiliation{
+\institution{University of Science and Technology of China}
+}\email{xiangnanhe@gmail.com}
+
+\author{Kuan Deng}
+\affiliation{
+\institution{University of Science and Technology of China}
+}\email{dengkuan@mail.ustc.edu.cn}
+
+
+
+\author{Xiang Wang}
+\affiliation{
+\institution{National University of Singapore}
+}\email{xiangwang@u.nus.edu}
+%\renewcommand{\shortauthors}{Xiang \etal}
+
+\author{Yan Li}
+\affiliation{
+\institution{Beijing Kuaishou Technology \\Co., Ltd.}
+}\email{liyan@kuaishou.com}
+
+\author{Yongdong Zhang}
+\affiliation{
+\institution{University of Science and Technology of China}
+}\email{zhyd73@ustc.edu.cn}
+
+\author{Meng Wang}
+\authornote{Meng Wang is the corresponding author.}
+\affiliation{
+\institution{Hefei University of Technology}
+}\email{eric.mengwang@gmail.com
+}
+
+
+
+\setcounter{page}{1}
+\pagenumbering{Roman}
+
+\begin{abstract}
+Graph Convolution Network (GCN) has become new state-of-the-art for collaborative filtering. Nevertheless, the reasons of its effectiveness for recommendation are not well understood. 
+Existing work that adapts GCN to recommendation lacks thorough ablation analyses on GCN, which is originally designed for graph classification tasks and equipped with many neural network operations. 
+However, we empirically find that the two most common designs in GCNs --- feature transformation and nonlinear activation --- contribute little to the performance of collaborative filtering. Even worse, including them adds to the difficulty of training and degrades recommendation performance. 
+
+In this work, we aim to simplify the design of GCN to make it more concise and appropriate for recommendation. We propose a new model named LightGCN, including only the most essential component in GCN --- neighborhood aggregation --- for collaborative filtering. Specifically, LightGCN learns user and item embeddings by linearly propagating them on the user-item interaction graph, and uses the weighted sum of the embeddings learned at all layers as the final embedding. 
+Such simple, linear, and neat model is much easier to implement and train, exhibiting substantial improvements (about 16.0\% relative improvement on average) over Neural Graph Collaborative Filtering (NGCF) --- a state-of-the-art GCN-based recommender model --- under exactly the same experimental setting. Further analyses are provided towards the rationality of the simple LightGCN from both analytical and empirical perspectives. Our implementations are available in both TensorFlow\footnote{\url{https://github.com/kuandeng/LightGCN}} and PyTorch\footnote{\url{https://github.com/gusye1234/pytorch-light-gcn}}. 
+%Further experiments reveal that ...
+%Codes will be released upon acceptance. 
+
+%We conduct empirical comparison with Neural Graph Collaborative Filtering (NGCF) --- a state-of-the-art GCN-based recommender model --- under the same experimental setting. 
+%While this simple linear model exhibits better accuracy than existing nonlinear GCN-based recommenders, the setting of the weight of each layer affects its effectiveness much. To avoid manually tuning the setting on a new dataset, we further propose to learn them based on the validation set, automating the usage of the simplified GCN model. 
+%Extensive experiments on three real-world datasets demonstrate the effectiveness of our simple and neat . 
+\end{abstract}
+%
+% The code below should be generated by the tool at
+% http://dl.acm.org/ccs.cfm
+% Please copy and paste the code instead of the example below.
+%
+\begin{CCSXML}
+	<ccs2012>
+	<concept>
+	<concept_id>10002951.10003317.10003347.10003350</concept_id>
+	<concept_desc>Information systems~Recommender systems</concept_desc> <concept_significance>500</concept_significance>
+	</concept>
+	</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Information systems~Recommender systems}
+\vspace{-5pt}
+\keywords{Collaborative Filtering, Recommendation, Embedding Propagation, Graph Neural Network}
+\maketitle
+
+
+\input{1_introduction}
+\input{2_preliminary}
+\input{3_method_new}
+\input{4_experiment}
+\input{5_related}
+\input{6_conclusion}
+
+
+\bibliographystyle{ACM-Reference-Format}
+\balance
+
+\bibliography{ms}
+\balance
+\scriptsize
+
+\end{document}

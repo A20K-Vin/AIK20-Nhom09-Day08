@@ -215,34 +215,36 @@ def _split_by_size(
 # Embed các chunk và lưu vào ChromaDB
 # =============================================================================
 
+_st_model = None  # cache sentence-transformers model
+
+
 def get_embedding(text: str) -> List[float]:
     """
     Tạo embedding vector cho một đoạn text.
+    Chọn provider qua biến môi trường EMBEDDING_PROVIDER:
+      - "openai"  (mặc định): dùng text-embedding-3-small, cần OPENAI_API_KEY
+      - "local"              : dùng sentence-transformers, chạy offline
+    """
+    provider = os.getenv("EMBEDDING_PROVIDER", "openai").lower()
 
-    TODO Sprint 1:
-    Chọn một trong hai:
-
-    Option A — OpenAI Embeddings (cần OPENAI_API_KEY):
+    if provider == "local":
+        global _st_model
+        if _st_model is None:
+            from sentence_transformers import SentenceTransformer
+            model_name = os.getenv(
+                "LOCAL_EMBEDDING_MODEL",
+                "paraphrase-multilingual-MiniLM-L12-v2",
+            )
+            _st_model = SentenceTransformer(model_name)
+        return _st_model.encode(text).tolist()
+    else:  # openai
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         response = client.embeddings.create(
             input=text,
-            model="text-embedding-3-small"
+            model="text-embedding-3-small",
         )
         return response.data[0].embedding
-
-    Option B — Sentence Transformers (chạy local, không cần API key):
-        from sentence_transformers import SentenceTransformer
-        model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-        return model.encode(text).tolist()
-    """
-    from openai import OpenAI
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.embeddings.create(
-        input=text,
-        model="text-embedding-3-small"
-    )
-    return response.data[0].embedding
 
 
 def build_index(docs_dir: Path = DOCS_DIR, db_dir: Path = CHROMA_DB_DIR) -> None:

@@ -1,0 +1,15 @@
+\section{Conclusion and Future Work} \label{sec:conclusion}
+In this work, we argued the unnecessarily complicated design of GCNs for collaborative filtering, and performed empirical studies to justify this argument. 
+%Driven by this finding, we set the goal of simplifying GCN to make it more appropriate and effective for the recommendation task. 
+We proposed LightGCN which consists of two essential components --- light graph convolution and layer combination. 
+In light graph convolution, we 
+%include only the weighted sum aggregator that refines a node's embedding with the embeddings of its connected neighbors, 
+discard feature transformation and nonlinear activation --- two standard operations in GCNs but inevitably increase the training difficulty. In layer combination, we construct a node's final embedding as the weighted sum of its embeddings on all layers, which is proved to subsume the effect of self-connections and is helpful to control oversmoothing. 
+We conduct experiments to demonstrate the strengths of LightGCN in being simple: easier to be trained, better generalization ability, and more effective. 
+
+We believe the insights of LightGCN are inspirational to future developments of recommender models. With the prevalence of linked graph data in real applications, graph-based models are becoming increasingly important in recommendation;
+by explicitly exploiting the relations among entities in the predictive model, they are advantageous to traditional supervised learning scheme like factorization machines~\cite{FM,NFM} that model the relations implicitly. 
+For example, a recent trend is to exploit auxiliary information such as item knowledge graph~\cite{KGAT}, social network~\cite{GCNSocial} and multimedia content~\cite{MMGCN} for recommendation, where GCNs have set up the new state-of-the-art. 
+However, these models may also suffer from the similar issues of NGCF since the user-item interaction graph is also modeled by same neural operations that may be unnecessary. We plan to explore the idea of LightGCN in these models. Another future direction is to personalize the layer combination weights $\alpha_k$, so as to enable adaptive-order smoothing for different users (e.g., sparse users may require more signal from higher-order neighbors while active users require less). Lastly, we will explore further the strengths of LightGCN's simplicity, studying whether fast solution exists for non-sampling regression loss~\cite{he2019fast} and streaming it for online industrial scenarios. 
+
+\noindent\textbf{Acknowledgement}. The authors thank Bin Wu, Jianbai Ye, and Yingxin Wu for contributing to the implementation and improvement of LightGCN. This work is supported by the National Natural Science Foundation of China (61972372, U19A2079, 61725203).

@@ -1,0 +1,179 @@
+\pgfplotsset{
+axis background/.style={fill=gallery},
+grid=both,
+  xtick pos=left,
+  ytick pos=left,
+  tick style={
+    major grid style={style=white,line width=1pt},
+    minor grid style=bgc,
+    draw=none
+    },
+  minor tick num=1,
+  ymajorgrids,
+	major grid style={draw=white},
+	y axis line style={opacity=0},
+	tickwidth=0pt,
+}
+
+
+\begin{figure}[ht]
+\centering
+    \begin{tikzpicture}[scale=0.5]
+	\begin{groupplot}[
+	    group style={group size=2 by 1,
+	        horizontal sep = 48pt}, 
+	    xlabel=\Large Dimensionality,
+        ylabel=\large HR@10,
+        xticklabels={0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9},
+        xtick={1,2,3,4,5,6,7,8,9},
+        ymajorgrids,
+        major grid style={draw=white},
+        y axis line style={opacity=0},
+        tickwidth=0pt,
+        yticklabel style={
+        /pgf/number format/fixed,
+        /pgf/number format/precision=5
+        },
+        scaled y ticks=false,
+        every axis title/.append style={at={(0.1,0.8)},font=\bfseries}
+	    ]
+		\nextgroupplot[
+		legend style = {
+		  font=\small,
+          draw=none, 
+          fill=none,
+          column sep = 1pt, 
+          /tikz/every even column/.append style={column sep=5mm},
+          legend columns = -1, 
+          legend to name = grouplegend},
+		%
+		]
+		
+		\addplot[thick,color=tuatara,mark=*] coordinates {
+          (1, 0.2797)
+          (2, 0.2869)
+          (3, 0.2952)
+          (4, 0.2996)
+          (5, 0.3028)
+          (6, 0.3047)
+          (7, 0.3009)
+          (8, 0.2968)
+          (9, 0.2265)
+        }; \addlegendentry{Beauty}
+         \addplot[thick,color=free_speech_aquamarine,mark=diamond*] coordinates {
+          (1, 0.3831)
+          (2, 0.3962)
+          (3, 0.3985)
+          (4, 0.4007)
+          (5, 0.3961)
+          (6, 0.3911)
+          (7, 0.3884)
+          (8, 0.3802)
+          (9, 0.3569)
+        }; \addlegendentry{Steam}
+        \addplot[thick,color=matisse,mark=square] coordinates {
+          (1, 0.6877)
+          (2, 0.6955)
+          (3, 0.6937)
+          (4, 0.6875)
+          (5, 0.6844)
+          (6, 0.6794)
+          (7, 0.6745)
+          (8, 0.6511)
+          (9, 0.6293)
+        };\addlegendentry{ML-1m}
+        \addplot[thick,color=sun_shade,mark=pentagon] coordinates {
+          (1, 0.6781)
+          (2, 0.6879)
+          (3, 0.6825)
+          (4, 0.6822)
+          (5, 0.6810)
+          (6, 0.6791)
+          (7, 0.6667)
+          (8, 0.6462)
+          (9, 0.6167)
+        };\addlegendentry{ML-20m}
+        \addplot[mark size=3.6pt, color=tuatara, mark=*,
+        ] coordinates {
+          (6, 0.3047)
+        }; 
+         \addplot[mark size=4.2pt, color=free_speech_aquamarine, mark=diamond*] coordinates {
+          (4, 0.4007)
+        }; 
+        \addplot[line width=0.6mm, mark size=3.2pt, color=matisse,mark=square] coordinates {
+          (2, 0.6955)
+        };
+        \addplot[line width=0.6mm, mark size=3.2pt, color=sun_shade,mark=pentagon] coordinates {
+          (2, 0.6879)
+        };
+        
+        
+        \nextgroupplot[
+        ylabel=\large NDCG@10]
+		\addplot[thick,color=tuatara,mark=*] coordinates {
+          (1, 0.1626)
+          (2, 0.1693)
+          (3, 0.1744)
+          (4, 0.1799)
+          (5, 0.1809)
+          (6, 0.1832)
+          (7, 0.1772)
+          (8, 0.1749)
+          (9, 0.1264)
+        };
+         \addplot[thick,color=free_speech_aquamarine,mark=diamond*] coordinates {
+          (1, 0.2123)
+          (2, 0.2206)
+          (3, 0.2226)
+          (4, 0.2241)
+          (5, 0.2207)
+          (6, 0.2190)
+          (7, 0.2149)
+          (8, 0.2096)
+          (9, 0.1909)
+        }; 
+        \addplot[thick,color=matisse,mark=square] coordinates {
+          (1, 0.4673)
+          (2, 0.4759)
+          (3, 0.4743)
+          (4, 0.4688)
+          (5, 0.4650)
+          (6, 0.4587)
+          (7, 0.4506)
+          (8, 0.4250)
+          (9, 0.3942)
+        };
+        \addplot[thick,color=sun_shade,mark=pentagon] coordinates {
+          (1, 0.4444)
+          (2, 0.4513)
+          (3, 0.4487)
+          (4, 0.4471)
+          (5, 0.4452)
+          (6, 0.4434)
+          (7, 0.4292)
+          (8, 0.4049)
+          (9, 0.3741)
+        };
+        \addplot[mark size=3.6pt, color=tuatara, mark=*] coordinates {
+          (6, 0.1832)
+        }; 
+         \addplot[mark size=4.2pt, color=free_speech_aquamarine, mark=diamond*] coordinates {
+          (4, 0.2241)
+        }; 
+        \addplot[line width=0.6mm, mark size=3.2pt, color=matisse,mark=square] coordinates {
+          (2, 0.4759)
+        };
+        \addplot[line width=0.6mm, mark size=3.2pt, color=sun_shade,mark=pentagon] coordinates {
+          (2, 0.4513)
+        };
+        
+	\end{groupplot}
+\node at ($(group c1r1) + (120pt, 95pt)$) {\ref{grouplegend}};
+\end{tikzpicture}
+
+    \caption{Performance with different mask proportion $\rho$ on $d=64$. Bold symbols denote the best scores in each line.}
+    \label{fig:mask_fig}
+\end{figure}
+
+
+  

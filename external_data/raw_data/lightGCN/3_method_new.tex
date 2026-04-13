@@ -1,0 +1,155 @@
+\section{Method}\label{sec:method}
+The former section demonstrates that NGCF is a heavy and burdensome GCN model for  collaborative filtering.
+Driven by these findings, we set the goal of developing a light yet effective model by including the most essential ingredients of GCN for recommendation. 
+The advantages of being simple are several-fold --- more interpretable, practically easy to train and maintain, technically easy to analyze the model behavior and revise it towards more effective directions, and so on. 
+
+In this section, we first present our designed \textit{Light Graph Convolution Network} (LightGCN) model, as illustrated in Figure~\ref{fig:LightGCN}.
+We then provide an in-depth analysis of LightGCN to show the rationality behind its simple design. 
+Lastly, we describe how to do model training for recommendation. 
+
+\subsection{LightGCN}
+%SPACE
+%Since GCN is an extension of multi-layer neural networks on graph data, what distinguishes GCN from other neural networks is the handling of the graph structure.  
+The basic idea of GCN is to learning representation for nodes by smoothing features over the graph~\cite{GCN,SGCN}. 
+To achieve this, it performs graph convolution iteratively, i.e., aggregating the features of neighbors as the new representation of a target node. 
+Such neighborhood aggregation can be abstracted as:
+\begin{equation}
+    \textbf{e}_{u}^{(k+1)} = \text{AGG} ( \textbf{e}_{u}^{(k)},  \{ \textbf{e}_i^{(k)} : i \in \mathcal{N}_u \}).
+\end{equation}
+%where $u$ denotes the target node to obtain new representation for, $\textbf{e}_{u}^{(k)}$ denotes $u$'s representation at the $k$-th layer, $\mathcal{N}_u$ denotes the neighbors of node $u$ which is evidenced from the graph structure, and 
+The AGG is an aggregation function --- the core of graph convolution --- that considers the $k$-th layer's representation of the target node and its neighbor nodes. Many work have specified the AGG, such as the weighted sum aggregator in GIN~\cite{GIN}, LSTM aggregator in GraphSAGE~\cite{GraphSAGE}, and bilinear interaction aggregator in BGNN~\cite{BGNN} etc. However, most of the work ties feature transformation or nonlinear activation with the AGG function. Although they perform well on node or graph classification tasks that have semantic input features, they could be burdensome for collaborative filtering (see preliminary results in Section~\ref{ss:ngcf_study}).
+
+\begin{figure}[t]
+	%\hspace*{-0.1cm}
+	\centering
+	\small	
+	\includegraphics[width=0.48\textwidth]{LightGCN.pdf}\vspace{-5pt}
+	\caption{An illustration of LightGCN model architecture. 
+	%The example is to obtain representation for user $u_1$ and $i_4$ and predict their interaction. $u_1$ is connected with items $i_1, i_2, i_3$, and item $i_4$ is connected with users $u_2, u_3$. 
+	In LGC, only the normalized sum of neighbor embeddings is performed towards next layer; other operations like self-connection, feature transformation, and nonlinear activation are all removed, which largely simplifies GCNs. In Layer Combination, we sum over the embeddings at each layer to obtain the final representations.}\vspace{-10pt}
+	\label{fig:LightGCN}
+\end{figure}
+
+\subsubsection{Light Graph Convolution (LGC)}
+In LightGCN, we adopt the simple weighted sum aggregator and abandon the use of feature transformation and nonlinear activation. The graph convolution operation (a.k.a., propagation rule~\cite{NGCF}) in LightGCN is defined as:
+\begin{equation}\label{eq:LGC}
+\begin{aligned}
+    \textbf{e}_{u}^{(k+1)} &= \sum_{i \in \mathcal{N}_u} \frac{1}{\sqrt{|\mathcal{N}_u|}\sqrt{|\mathcal{N}_i|}} \textbf{e}_i^{(k)},  \\
+    \textbf{e}_{i}^{(k+1)} &= \sum_{u \in \mathcal{N}_i} \frac{1}{\sqrt{|\mathcal{N}_i|}\sqrt{|\mathcal{N}_u|}} \textbf{e}_u^{(k)}.
+\end{aligned}
+\end{equation}
+%Since LightGCN is operated on user-item interaction graph which is a bipartite structure, we separate the definition for users and items. In the equation, $u$ denotes a user node and $|\mathcal{N}_u|$ denotes the number of items that $u$ has interacted with, $i$ denotes an item node and $|\mathcal{N}_i|$ denotes the number of users that have interacted with $i$. 
+The symmetric normalization term $\frac{1}{\sqrt{|\mathcal{N}_u|}\sqrt{|\mathcal{N}_i|}}$ follows the design of standard GCN~\cite{GCN}, which can avoid the scale of embeddings increasing with graph convolution operations; other choices can also be applied here, such as the $L_1$ norm, while empirically we find this symmetric normalization has good performance (see experiment results in Section~\ref{ss:ablation-symmetric}). 
+
+It is worth noting that in LGC, we aggregate only the connected neighbors and do not integrate the target node itself (i.e., self-connection). This is different from most existing graph convolution operations~\cite{NGCF,GCN,GAT,GraphSAGE, BGNN} that typically aggregate extended neighbors and need to handle the self-connection specially. 
+The layer combination operation, to be introduced in the next subsection, essentially captures the same effect as self-connections. Thus, there is no need in LGC to include self-connections. 
+
+\subsubsection{Layer Combination and Model Prediction} In LightGCN, the only trainable model parameters are the embeddings at the 0-th layer, i.e., $\textbf{e}_{u}^{(0)}$ for all users and  $\textbf{e}_{i}^{(0)}$ for all items. When they are given, the embeddings at higher layers can be computed via LGC defined in Equation~(\ref{eq:LGC}). 
+After $K$ layers LGC, we further combine the embeddings obtained at each layer to form the final representation of a user (an item):
+\begin{equation}
+\begin{aligned}
+    \textbf{e}_{u} = \sum_{k=0}^K \alpha_k \textbf{e}_u^{(k)}; \quad \textbf{e}_{i} = \sum_{k=0}^K \alpha_k \textbf{e}_i^{(k)},
+    %\\ & s.t. \quad \alpha_k \geq 0,\quad \text{and} \quad \sum_{k=0}^K \alpha_k = 1,
+\end{aligned}
+\end{equation}
+where $\alpha_k \geq 0$ denotes the importance of the $k$-th layer embedding in constituting the final embedding. 
+It can be treated as a hyper-parameter to be tuned manually, or as a model parameter (e.g., output of an attention network~\cite{ACF}) to be optimized automatically. In our experiments, we find that setting $\alpha_k$ uniformly as $1 / (K+1)$ leads to good performance in general. Thus we do not design special component to optimize $\alpha_k$, to avoid complicating LightGCN unnecessarily and to keep its simplicity.  
+The reasons that we perform layer combination to get final representations are three-fold. (1) With the increasing of the number of layers, the embeddings will be over-smoothed~\cite{DeepInsights}. Thus simply using the last layer is problematic. (2) The embeddings at different layers capture different semantics. E.g., the first layer enforces smoothness on users and items that have interactions, the second layer smooths users (items) that have overlap on interacted items (users), and higher-layers capture higher-order proximity~\cite{NGCF}. Thus combining them will make the representation more comprehensive. (3) Combining embeddings at different layers with weighted sum captures the effect of graph convolution with self-connections, an important trick in GCNs (proof sees Section~\ref{ss:relation-sgcn}).
+
+The model prediction is defined as the inner product of user and item final representations: 
+\begin{equation}
+    \hat{y}_{ui} = \textbf{e}_u ^T \textbf{e}_i,
+\end{equation}
+which is used as the ranking score for recommendation generation. 
+
+\subsubsection{Matrix Form} We provide the matrix form of LightGCN to facilitate implementation and discussion with existing models. Let the user-item interaction matrix be $\textbf{R} \in \mathbb{R}^{M\times N}$ where $M$ and $N$ denote the number of users and items, respectively, and each entry $R_{ui}$ is 1 if $u$ has interacted with item $i$ otherwise 0. We then obtain the adjacency matrix of the user-item graph as 
+\begin{equation}
+    \textbf{A}=
+    \left(\begin{matrix}
+    \textbf{0} & \textbf{R}\\
+    \textbf{R}^{T} & \textbf{0}\\
+    \end{matrix} \right),
+\end{equation}
+Let the $0$-th layer embedding matrix be $\textbf{E}^{(0)} \in \mathbb{R}^{ (M+N) \times T} $, where $T$ is the embedding size.  
+Then we can obtain the matrix equivalent form of LGC as:
+\begin{equation}
+    \textbf{E}^{(k+1)} = (\textbf{D}^{-\frac{1}{2}} \textbf{A} \textbf{D}^{-\frac{1}{2}}) \textbf{E}^{(k)},
+\end{equation}
+where $\textbf{D}$ is a $(M+N)\times (M+N)$ diagonal matrix, in which each entry $D_{ii}$ denotes the number of nonzero entries in the $i$-th row vector of the  adjacency matrix $\textbf{A}$ (also named as degree matrix). Lastly, we get the final embedding matrix used for model prediction as:
+\begin{equation}\label{eq:E_LGCN}
+\begin{aligned}
+    \textbf{E} &= \alpha_0 \textbf{E}^{(0)} + \alpha_1 \textbf{E}^{(1)} + \alpha_2 \textbf{E}^{(2)} + ... + \alpha_K \textbf{E}^{(K)} \\
+    &= \alpha_0 \textbf{E}^{(0)} + \alpha_1 \Tilde{\textbf{A}}\textbf{E}^{(0)} + \alpha_2 \Tilde{\textbf{A}}^2\textbf{E}^{(0)} + ... + \alpha_K \Tilde{\textbf{A}}^K\textbf{E}^{(0)},
+\end{aligned}
+\end{equation}
+where $\Tilde{\textbf{A}} = \textbf{D}^{-\frac{1}{2}} \textbf{A} \textbf{D}^{-\frac{1}{2}}$ is the symmetrically normalized matrix.
+
+\subsection{Model Analysis}
+We conduct model analysis to demonstrate the rationality behind the simple design of LightGCN. 
+First we discuss the connection with the Simplified GCN (SGCN)~\cite{SGCN}, which is a recent linear GCN model that integrates self-connection into graph convolution; this analysis shows that by doing layer combination, LightGCN subsumes the effect of self-connection thus there is no need for LightGCN to add self-connection in adjacency matrix. 
+Then we discuss the relation with the Approximate Personalized Propagation of Neural Predictions (APPNP)~\cite{ICLR19-APPNP}, which is recent GCN variant that addresses oversmoothing by inspiring from Personalized PageRank~\cite{haveliwala2002topic}; this analysis shows the underlying equivalence between LightGCN and APPNP, thus our LightGCN enjoys the sames benefits in propagating long-range with controllable oversmoothing. 
+%while our LightGCN is more concise and neat. 
+Lastly we analyze the second-layer LGC to show how it smooths a user with her second-order neighbors, providing more insights into the working mechanism of LightGCN.  
+
+\subsubsection{Relation with SGCN}\label{ss:relation-sgcn} In \cite{SGCN}, the authors argue the unnecessary complexity of GCN for node classfication and propose SGCN, which simplifies GCN by removing nonlinearities and collapsing the weight matrices to one weight matrix. The graph convolution in SGCN is defined as\footnote{The weight matrix in SGCN can be absorbed into the 0-th layer embedding parameters, thus it is omitted in the analysis.}:
+\begin{equation}
+    \textbf{E}^{(k+1)} = (\textbf{D}+\textbf{I})^{-\frac{1}{2}} (\textbf{A}+\textbf{I}) (\textbf{D}+\textbf{I})^{-\frac{1}{2}} \textbf{E}^{(k)},
+\end{equation}
+where $\textbf{I}\in \mathbb{R}^{(M+N)\times (M+N)}$ is an identity matrix, which is added on $\textbf{A}$ to include self-connections. 
+In the following analysis, we omit the $(\textbf{D}+\textbf{I})^{-\frac{1}{2}}$ terms for simplicity, since they only re-scale embeddings. In SGCN, the embeddings obtained at the last layer are used for downstream prediction task, which can be expressed as:
+\begin{equation}\label{eq:SGCN}
+\begin{aligned}
+    \textbf{E}^{(K)} &= (\textbf{A}+\textbf{I}) \textbf{E}^{(K-1)} = (\textbf{A}+\textbf{I})^K \textbf{E}^{(0)} \\
+    &= \binom{K}{0}\textbf{E}^{(0)} + \binom{K}{1} \textbf{A} \textbf{E}^{(0)} + \binom{K}{2} \textbf{A}^2 \textbf{E}^{(0)} + ... + \binom{K}{K} \textbf{A}^K \textbf{E}^{(0)}.
+\end{aligned}
+\end{equation}
+The above derivation shows that, inserting self-connection into $\textbf{A}$ and propagating embeddings on it, is essentially equivalent to a weighted sum of the embeddings propagated at each LGC layer. 
+
+\subsubsection{Relation with APPNP}\label{ss:APPNP} In a recent work \cite{ICLR19-APPNP}, the authors
+connect GCN with Personalized PageRank~\cite{haveliwala2002topic}, inspiring from which they propose a GCN variant named APPNP that can propagate long range without the risk of oversmoothing. 
+Inspired by the teleport design in Personalized PageRank, APPNP complements each propagation layer with the starting features (i.e., the 0-th layer embeddings), which can balance the need of preserving locality (i.e., staying close to the root node to alleviate oversmoothing) and leveraging the information from a large neighborhood. The propagation layer in APPNP is defined as:
+\begin{equation}
+    \textbf{E}^{(k+1)} = \beta \textbf{E}^{(0)} + (1-\beta) \Tilde{\textbf{A}} \textbf{E}^{(k)},
+\end{equation}
+where $\beta$ is the teleport probability to control the retaining of starting features in the propagation, and $\Tilde{\textbf{A}}$ denotes the normalized adjacency matrix. In APPNP, the last layer is used for final prediction, i.e., 
+\begin{equation}
+\begin{aligned}
+    \textbf{E}^{(K)} &= \beta \textbf{E}^{(0)} + (1-\beta) \Tilde{\textbf{A}} \textbf{E}^{(K-1)}, \\
+    &= \beta \textbf{E}^{(0)} + \beta (1-\beta) \Tilde{\textbf{A}} \textbf{E}^{(0)} + (1-\beta)^2 \Tilde{\textbf{A}}^2 \textbf{E}^{(K-2)} \\
+    &= \beta \textbf{E}^{(0)} + \beta (1-\beta) \Tilde{\textbf{A}} \textbf{E}^{(0)} + \beta(1-\beta)^2 \Tilde{\textbf{A}}^2 \textbf{E}^{(0)} + ... + (1-\beta)^K \Tilde{\textbf{A}}^K \textbf{E}^{(0)}.
+\end{aligned}
+\end{equation}
+Aligning with Equation~(\ref{eq:E_LGCN}), we can see that by setting $\alpha_k$ accordingly, LightGCN can fully recover the prediction embedding used by APPNP. 
+As such, LightGCN shares the strength of APPNP in combating oversmoothing --- by setting the $\alpha$ properly, we allow using a large $K$ for long-range modeling with controllable oversmoothing. 
+
+Another minor difference is that APPNP adds self-connection into the adjacency matrix. However, as we have shown before, this is redundant due to the weighted sum of different layers. 
+
+\subsubsection{Second-Order Embedding Smoothness} \label{ss:second-order}
+Owing to the linearity and simplicity of LightGCN, we can draw more insights into how does it smooth embeddings. Here we analyze a 2-layer LightGCN to demonstrate its rationality. Taking the user side as an example, intuitively, the second layer smooths users that have overlap on the interacted items. More concretely, we have:
+\begin{equation}
+\begin{aligned}
+    \textbf{e}_{u}^{(2)} &= \sum_{i \in \mathcal{N}_u} \frac{1}{\sqrt{|\mathcal{N}_u|}\sqrt{|\mathcal{N}_i|}} \textbf{e}_i^{(1)} = \sum_{i \in \mathcal{N}_u} \frac{1}{|\mathcal{N}_i|} \sum_{v\in \mathcal{N}_i} \frac{1}{\sqrt{|\mathcal{N}_u|}\sqrt{|\mathcal{N}_v|} } \textbf{e}_{v}^{(0)}. \\ 
+\end{aligned}
+\end{equation}
+We can see that, if another user $v$ has co-interacted with the target user $u$, the smoothness strength of $v$ on $u$ is measured by the coefficient (otherwise 0):
+\begin{equation}\label{eq:c_vu}
+    c_{v -> u} = \frac{1}{\sqrt{|\mathcal{N}_u|}\sqrt{|\mathcal{N}_v|}} \sum_{i \in \mathcal{N}_u \cap \mathcal{N}_v} \frac{1}{|\mathcal{N}_i|}. 
+\end{equation}
+This coefficient is rather interpretable: the influence of a second-order neighbor $v$ on $u$ is determined by 1) the number of co-interacted items, the more the larger; 2) the popularity of the co-interacted items, the less popularity (i.e., more indicative of user personalized preference) the larger; and 3) the activity of $v$, the less active the larger. 
+Such interpretability well caters for the assumption of CF in measuring user similarity~\cite{CSE,Wang:2006} and evidences the reasonability of LightGCN. 
+Due to the symmetric formulation of LightGCN, we can get similar analysis on the item side. 
+
+\subsection{Model Training}
+The trainable parameters of LightGCN are only the embeddings of the 0-th layer, i.e.,  $\Theta=\{\textbf{E}^{(0)}\}$; in other words, the model complexity is same as the standard matrix factorization (MF).
+We employ the \textit{Bayesian Personalized Ranking} (BPR) loss~\cite{BPRMF}, which is a pairwise loss that encourages the prediction of an observed entry to be higher than its unobserved counterparts:
+\begin{equation}
+ L_{BPR} = - \sum_{u=1}^{M} \sum_{i \in \mathcal{N}_u} \sum_{j \notin \mathcal{N}_u} \ln \sigma (\hat{y}_{ui} - \hat{y}_{uj} ) + \lambda ||\textbf{E}^{(0)}||^2
+\end{equation}
+where $\lambda$ controls the $L_2$ regularization strength. We employ the Adam~\cite{Adam} optimizer and use it in a mini-batch manner.
+%: first, we randomly sample $X$ observed entries where $X$ is the mini-batch size; then for each observed entry $(u,i)$ we pair it with an unobserved item $j$ that is uniformly sampled from $\mathcal{N}_u$. 
+We are aware of other advanced negative sampling strategies which might improve the LightGCN training, such as the hard negative sampling~\cite{rendle2014improving} and adversarial sampling~\cite{Ding2019IJCAI}. We leave this extension in the future since it is not the focus of this work. 
+
+Note that we do not introduce dropout mechanisms, which are commonly used in GCNs and NGCF. The reason is that we do not have feature transformation weight matrices in LightGCN, thus enforcing $L_2$ regularization on the embedding layer is sufficient to prevent overfitting. 
+This showcases LightGCN's advantages of being simple --- it is easier to train and tune than NGCF which additionally requires to tune two dropout ratios (node dropout and message dropout) and normalize the embedding of each layer to unit length. 
+
+Moreover, it is technically viable to also learn the layer combination coefficients $\{\alpha_k\}_{k=0}^K$, or parameterize them with an attention network. However, we find that learning $\alpha$ on training data does not lead improvement. This is probably because the training data does not contain sufficient signal to learn good $\alpha$ that can generalize to unknown data. We have also tried to learn $\alpha$ from validation data, as inspired by \cite{lambdaOpt} that learns hyper-parameters on validation data. The performance is slightly improved (less than $1\%$). We leave the exploration of optimal settings of $\alpha$ (e.g., personalizing it for different users and items) as future work. 

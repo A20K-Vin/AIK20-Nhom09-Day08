@@ -1,0 +1,67 @@
+\section{Introduction}
+
+
+
+
+
+Accurately characterizing users' interests lives at the heart of an effective recommendation system.
+In many real-world applications, users' current interests are intrinsically dynamic and evolving, influenced by their historical behaviors.
+For example, one may purchase accessories (\textit{e.g.}, Joy-Con controllers) soon after buying a Nintendo Switch, though she/he will not buy console accessories under normal circumstances.
+
+To model such sequential dynamics in user behaviors, various methods have been proposed to make \textit{sequential recommendations} based on users' historical interactions~\cite{Rendle:WWW2010:FPM,Hidasi:ICLR2016:gru4rec,Kang:ICDM2018:SAS}.
+They aim to predict the successive item(s) that a user is likely to interact with given her/his past interactions.
+Recently, a surge of works employ sequential neural networks, \textit{e.g.}, Recurrent Neural Network (RNN), for sequential recommendation and obtain promising results~\cite{Hidasi:ICLR2016:gru4rec,Yu:sigir2016:DRM,Wu:wsdm2017:RRN,Donkers:recsys2017:SUR,Hidasi:CIKM2018:RNN}.
+The basic paradigm of previous work is to encode a user's historical interactions into a vector (\textit{i.e.}, representation of user's preference) using a left-to-right sequential model and make recommendations based on this hidden representation.
+
+
+
+
+
+Despite their prevalence and effectiveness, we argue that such left-to-right unidirectional models are not sufficient to learn optimal representations for user behavior sequences. %
+The major limitation, as illustrated in Figure~\ref{fig:model}c and~\ref{fig:model}d, is that such unidirectional models restrict the power of hidden representation for items in the historical sequences, where each item can only encode the information from previous items.
+Another limitation is that previous unidirectional models are originally introduced for sequential data with natural order, \textit{e.g.}, text and time series data.
+They often assume a rigidly ordered sequence over data which is not always true for user behaviors in real-world applications.
+In fact, the choices of items in a user's historical interactions may not follow a rigid order assumption~\cite{Hu:ijcai2017:Diversifying,Wang:aaai2018:atem} due to various unobservable external factors~\cite{Covington:recsys2016:DNN}. %
+In such a situation, it is crucial to incorporate context from both directions in user behavior sequence modeling.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+To address the limitations mentioned above, we seek to use a bidirectional model to learn the representations for users' historical behavior sequences.
+Specifically, inspired by the success of BERT~\cite{Devlin:2018:BERT} in text understanding, we propose to apply the deep bidirectional self-attention model to sequential recommendation, as illustrated in Figure~\ref{fig:model}b. 
+For representation power, the superior results for deep bidirectional models on text sequence modeling tasks show that it is beneficial to incorporate context from both sides for sequence representations learning~\cite{Devlin:2018:BERT}.
+For rigid order assumption, our model is more suitable than unidirectional models in modeling user behavior sequences since all items in the bidirectional model can leverage the contexts from both left and right side.
+
+
+However, it is not straightforward and intuitive to train the bidirectional model for sequential recommendation. %
+Conventional sequential recommendation models are usually trained left-to-right by predicting the next item for each position in the input sequence.
+As shown in Figure~\ref{fig:model}, jointly conditioning on both left and right context in a deep bidirectional model would cause information leakage, \textit{i.e.}, allowing each item to indirectly ``see the target item''.
+This could make predicting the future become trivial and the network would not learn anything useful.
+
+To tackle this problem, we introduce the Cloze task~\cite{Devlin:2018:BERT,Wilson:Cloze} to take the place of the objective in unidirectional models (\textit{i.e.}, sequentially predicting the next item).
+Specifically, we randomly mask some items (\textit{i.e.}, replace them with a special token \texttt{[mask]}) in the input sequences, and then predict the ids of those masked items based on their surrounding context. %
+In this way, we avoid the information leakage and learn a bidirectional representation model by allowing the representation of each item in the input sequence to fuse both the left and right context.
+In addition to training a bidirectional model, another advantage of the Cloze objective is that it can produce more samples to train a more powerful model in multiple epochs. %
+However, a downside of the Cloze task is that it is not consistent with the final task (\textit{i.e.}, sequential recommendation).
+To fix this, during the test, we append the special token ``\texttt{[mask]}'' at the end of the input sequence to indicate the item that we need to predict, and then make recommendations base on its final hidden vector.
+Extensive experiments on four datasets show that our model outperforms various state-of-the-art baselines consistently.
+
+The contributions of our paper are as follows:
+\begin{itemize}%
+    \item We propose to model user behavior sequences with a bidirectional self-attention network through Cloze task. To the best of our knowledge, this is the first study to introduce deep bidirectional sequential model and Cloze objective into the field of recommendation systems.
+    \item We compare our model with state-of-the-art methods and demonstrate the effectiveness of both bidirectional architecture and the Cloze objective through quantitative analysis on four benchmark datasets.
+    \item We conduct a comprehensive ablation study to analyze the contributions of key components in the proposed model. %
+\end{itemize}
+
+
+

@@ -1,0 +1,295 @@
+\section{Experiments}\label{sec:experiments}
+%This section reports experiments that evaluate the performance of LightGCN and study its properties. 
+We first describe experimental settings, and then conduct detailed comparison with NGCF~\cite{NGCF}, the method that is most relevant with LightGCN but more complicated (Section~\ref{ss:exp-ngcf}). We next compare with other state-of-the-art methods in Section \ref{ss:exp-SOTA}. To justify the designs in LightGCN and reveal the reasons of its effectiveness, we perform ablation studies and embedding analyses in Section \ref{ss:exp-ablation}. The hyper-parameter study is finally presented in Section \ref{ss:exp-hyper}. 
+
+\begin{table}[t]
+\caption{Statistics of the experimented data.}
+\vspace{-10px}
+\label{tab:dataset}
+%\resizebox{0.42\textwidth}{!}{
+\begin{tabular}{l|r|r|r|r}
+\hline
+\multicolumn{1}{c|}{\textbf{Dataset}} & \multicolumn{1}{c|}{\textbf{User \#}} & \multicolumn{1}{c|}{\textbf{Item \#}} & \multicolumn{1}{c|}{\textbf{Interaction \#}} & \multicolumn{1}{c}{\textbf{Density}} \\ \hline\hline
+% Yelp2015 & $22,501$ & $14,280$ & $630,135$ & $0.00196$ \\ \hline
+Gowalla & $29,858$ & $40,981$ & $1,027,370$ & $0.00084$ \\ \hline
+Yelp2018 & $31,668$ & $38,048$ & $1,561,406$ & $0.00130$ \\ \hline
+Amazon-Book & $52,643$ & $91,599$ & $2,984,108$ & $0.00062$ \\ \hline
+% MovieLens-Latest & $1,66,311$ & $16,449$ & $24,704,762$ & $0.00903$ \\ \hline
+\end{tabular}
+%}
+\vspace{-15px}
+\end{table}
+
+\subsection{Experimental Settings}\label{ss:setting}
+To reduce the experiment workload and keep the comparison fair, we closely follow the settings of the NGCF work~\cite{NGCF}. We request the experimented datasets (including train/test splits) from the authors, for which the statistics are shown in Table~\ref{tab:dataset}. 
+The Gowalla and Amazon-Book are exactly the same as the NGCF paper used, so we directly use the results in the NGCF paper. The only exception is the Yelp2018 data, which is a revised version. According to the authors, the previous version did not filter out cold-start items in the testing set, and they shared us the revised version only. Thus we re-run NGCF on the Yelp2018 data.
+%SPACE
+%All three datasets satisfy the 10-core setting, i.e., each user and item has at least 10 interactions. 
+%SPACE
+%The testing set is consisted of $20\%$ interactions randomly selected from each user's interaction history, and the remaining data is the training set. 
+The evaluation metrics are recall@20 and ndcg@20 computed by the all-ranking protocol --- all items that are not interacted by a user are the candidates. 
+%SPACE
+%More details of experimental settings refer to the NGCF paper~\cite{NGCF}.
+
+\begin{table*}[t]
+\caption{Performance comparison between NGCF and LightGCN at different layers.}
+\vspace{-10px}
+\label{tab:overall}
+\resizebox{0.9\textwidth}{!}{
+\begin{tabular}{c|c|l | l|l | l| l | l}
+\hline
+ \multicolumn{2}{c|}{\textbf{Dataset}}
+ & \multicolumn{2}{c|}{\textbf{Gowalla}} & \multicolumn{2}{c|}{\textbf{Yelp2018}} & \multicolumn{2}{c}{\textbf{Amazon-Book}} \\ \hline
+ \textbf{Layer \#} & \textbf{Method} 
+ & \textbf{recall} & \textbf{ndcg} & \textbf{recall} & \textbf{ndcg} & \textbf{recall} & \textbf{ndcg} \\ \hline\hline
+\multirow{2}{*}{\textbf{1 Layer}} & NGCF &  
+0.1556 & 0.1315 & 0.0543 & 0.0442 & 0.0313 & 0.0241
+ \\ 
+&LightGCN & 0.1755(+12.79\%) & 0.1492(+13.46\%) & 0.0631(+16.20\%) & 0.0515(+16.51\%) & 0.0384(+22.68\%) & 0.0298(+23.65\%) \\ \hline
+\multirow{2}{*}{\textbf{2 Layers}} & NGCF &  
+0.1547 & 0.1307 & 0.0566 & 0.0465 & 0.0330 &	0.0254 \\
+&LightGCN & 0.1777(+14.84\%) & 0.1524(+16.60\%) & 0.0622(+9.89\%) & 0.0504(+8.38\%) & 0.0411(+24.54\%) & 0.0315(+24.02\%) \\  \hline
+\multirow{2}{*}{\textbf{3 Layers}} & NGCF &  
+0.1569 & 0.1327 & 0.0579 & 0.0477 & 0.0337 & 0.0261 \\ 
+&LightGCN & 0.1823(+16.19\%) & 0.1555(+17.18\%) & 0.0639(+10.38\%) & 0.0525(+10.06\%) & 0.0410(+21.66\%) & 0.0318(+21.84\%) \\ \hline
+\multirow{2}{*}{\textbf{4 Layers}} & NGCF &  
+0.1570 & 0.1327 & 0.0566 & 0.0461 & 0.0344 & 0.0263\\
+&LightGCN & 0.1830(+16.56\%) & 0.1550(+16.80\%) & 0.0649(+14.58\%) & 0.0530(+15.02\%) & 0.0406(+17.92\%) & 0.0313(+18.92\%) \\ \hline
+%NGCF_fni  & $\Mat{0.1733}$ & $\Mat{0.2435}$ & $\Mat{0.0616}$ & $\Mat{0.1120}$ & $\Mat{0.0378}$ & $\Mat{0.0684}$ \\ 
+\end{tabular}}\vspace{+2pt}
+\\\small{*The scores of NGCF on Gowalla and Amazon-Book are directly copied from Table 3 of the NGCF paper (\url{https://arxiv.org/abs/1905.08108})} \vspace{-5pt}
+\end{table*}
+
+  
+\subsubsection{Compared Methods} The main competing method is NGCF, which has shown to outperform several methods including GCN-based models GC-MC~\cite{GC-MC} and PinSage~\cite{PinSage}, neural network-based models NeuMF~\cite{NCF} and CMN~\cite{CMN}, and factorization-based models MF~\cite{BPRMF} and HOP-Rec~\cite{HOP-rec}.
+As the comparison is done on the same datasets under the same evaluation protocol, we do not further compare with these methods. In addition to NGCF, we further compare with two relevant and competitive CF methods:
+\begin{itemize}[leftmargin=*]
+\item Mult-VAE~\cite{VACF}. This is an item-based CF method based on the variational autoencoder (VAE). 
+%SPACE
+%It defines a generative process for user interaction data, 
+It assumes the data is generated from a multinomial distribution and using variational inference for parameter estimation. 
+We run the codes released by the authors\footnote{\url{https://github.com/dawenl/vae_cf}}, tuning the dropout ratio in $[0, 0.2, 0.5]$, and the $\beta$ in $[0.2,0.4,0.6,0.8]$. The model architecture is the suggested one in the paper: $600\rightarrow 200 \rightarrow 600$. 
+%and use the reported hyper-parameters that are used by the authors on all experiment data. 
+%We find the default architecture setting of $[600\to 200\to 600]$ has poor performance on our data. Since our data is smaller than their experiment data, we further try smaller models of the architecture $[300\to 100\to 300]$ and $[150\to 50\to 150]$.  
+\item GRMF~\cite{rao2015collaborative}. This method smooths matrix factorization by adding the graph Laplacian regularizer.
+%SPACE
+%on user-user graph and item-item graph. As it assumes the availability of the two graphs, which however are not available in our CF data, we alter the Laplacian regularizer on user-item graph. 
+For fair comparison on item recommendation, we change the rating prediction loss to BPR loss. The objective function of GRMF is:
+\begin{equation}
+\begin{aligned}
+    L &= - \sum_{u=1}^{M} \sum_{i \in \mathcal{N}_u} \Big(\sum_{j \notin \mathcal{N}_u} \ln \sigma (\textbf{e}_u^T \textbf{e}_i - \textbf{e}_u^T \textbf{e}_j ) + \lambda_{g} ||\textbf{e}_u - \textbf{e}_i||^2 \Big)+ \lambda ||\textbf{E}||^2,
+\end{aligned}
+\end{equation}
+where $\lambda_g$ is searched in the range of $[1e^{-5}, 1e^{-4}, ..., 1e^{-1}]$. 
+Moreover, we compare with a variant that adds normalization to graph Laplacian: $\lambda_{g} ||\frac{\textbf{e}_u}{\sqrt{|\mathcal{N}_u|}} - \frac{\textbf{e}_i}{\sqrt{|\mathcal{N}_i|}}||^2$, which is termed as GRMF-norm. 
+Other hyper-parameter settings are same as LightGCN. 
+The two GRMF methods benchmark the performance of smoothing embeddings via Laplacian regularizer, while our LightGCN achieves embedding smoothing in the predictive model. 
+\end{itemize}
+
+\subsubsection{Hyper-parameter Settings} 
+Same as NGCF, the embedding size is fixed to 64 for all models and the embedding parameters are initialized with the Xavier method~\cite{Xarvier}. We optimize LightGCN with Adam~\cite{Adam} and use the default learning rate of 0.001 and default mini-batch size of 1024 (on Amazon-Book, we increase the mini-batch size to 2048 for speed). The $L_2$ regularization coefficient $\lambda$ is searched in the range of $\{1e^{-6}, 1e^{-5}, ... , 1e^{-2}\}$, and in most cases the optimal value is $1e^{-4}$. 
+The layer combination coefficient $\alpha_k$ is uniformly set to $\frac{1}{1+K}$ where $K$ is the number of layers. We test $K$ in the range of 1 to 4, and satisfactory performance can be achieved when $K$ equals to 3. 
+The early stopping and validation strategies are the same as NGCF. Typically, 1000 epochs are sufficient for LightGCN to converge. Our implementations are available in both TensorFlow\footnote{\url{https://github.com/kuandeng/LightGCN}} and PyTorch\footnote{\url{https://github.com/gusye1234/pytorch-light-gcn}}. 
+
+
+\begin{figure*}[t]
+	\centering
+	\subfigure{\includegraphics[width=0.24\textwidth]{Gowalla_training_loss.pdf}} 
+	\subfigure{\includegraphics[width=0.24\textwidth]{Gowalla_recall_20.pdf}} 
+	\subfigure{\includegraphics[width=0.24\textwidth]{Amazon-Book_training_loss.pdf}}
+	\subfigure{\includegraphics[width=0.24\textwidth]{Amazon-Book_recall_20.pdf}}
+	\vspace{-15pt}
+	\caption{Training curves of LightGCN and NGCF, which are evaluated by training loss and testing recall per 20 epochs on Gowalla and Amazon-Book (results on Yelp2018 show exactly the same trend which are omitted for space).} \vspace{-10pt}
+	\label{fig:curve}
+\end{figure*}
+
+\subsection{Performance Comparison with NGCF}\label{ss:exp-ngcf}
+We perform detailed comparison with NGCF, recording the performance at different layers (1 to 4) in Table \ref{tab:overall}, which also shows the percentage of relative improvement on each metric. 
+We further plot the training curves of training loss and testing recall in Figure~\ref{fig:curve} to reveal the advantages of LightGCN and to be clear of the training process. 
+The main observations are as follows:
+\begin{itemize}[leftmargin=*]
+    \item In all cases, LightGCN outperforms NGCF by a large margin. For example, on Gowalla the highest recall reported in the NGCF paper is 0.1570, while our LightGCN can reach 0.1830 under the 4-layer setting, which is $16.56\%$ higher. On average, the recall improvement on the three datasets is $16.52\%$ and the ndcg improvement is $16.87\%$, which are rather significant.
+    \item Aligning Table \ref{tab:overall} with Table \ref{tab:pre} in Section~\ref{sec:preliminaries}, we can see that LightGCN performs better than NGCF-fn, the variant of NGCF that removes feature transformation and nonlinear activation. As NGCF-fn still contains more operations than LightGCN (e.g., self-connection, the interaction between user embedding and item embedding in graph convolution, and dropout), this suggests that these operations might also be useless for NGCF-fn. 
+    \item Increasing the number of layers can improve the performance, but the benefits diminish. The general observation is that increasing the layer number from 0 (i.e., the matrix factorization model, results see \cite{NGCF}) to 1 leads to the largest performance gain, and using a layer number of 3 leads to satisfactory performance in most cases. This observation is consistent with NGCF's finding.
+    %, revealing that smoothing a node's embedding by its second-order neighbors is probably sufficient for collaborative filtering.  
+    \item Along the training process, LightGCN consistently obtains lower training loss, which indicates that LightGCN fits the training data better than NGCF. Moreover, the lower training loss successfully transfers to better testing accuracy, indicating the strong generalization power of LightGCN. In contrast, the higher training loss and lower testing accuracy of NGCF reflect the practical difficulty to train such a heavy model it well. Note that in the figures we show the training process under the optimal hyper-parameter setting for both methods. Although increasing the learning rate of NGCF can decrease its training loss (even lower than that of LightGCN), the testing recall could not be improved, as lowering training loss in this way only finds trivial solution for NGCF. 
+\end{itemize}
+
+%Second, the performance gains obtained by increasing the number of layers are not very large and consistent for LightGCN. On Gowalla, it shows the trend that  increasing the layer number improves the performance gradually and the highest score is obtained by using 4 layers. However, this trend does not generalize to Yelp2018 an Amazon-Book. 
+ %is published recently and has compared with several competing methods including
+ %GCN-based models GC-MC~\cite{} and PinSage (GCN-based), neural network-based models NeuMF and CMN, 
+
+\subsection{Performance Comparison with State-of-the-Arts}\label{ss:exp-SOTA}
+Table \ref{tab:overall} shows the performance comparison with competing methods. We show the best score we can obtain for each method. We can see that LightGCN consistently outperforms other methods on all three datasets, demonstrating its high effectiveness with simple yet reasonable designs. Note that LightGCN can be further improved by tuning the $\alpha_k$ (see Figure \ref{fig:layer-combination} for an evidence), while here we only use a uniform setting of $\frac{1}{K+1}$ to avoid over-tuning it. Among the baselines, Mult-VAE exhibits the strongest performance, which is better than GRMF and NGCF. 
+The performance of GRMF is on a par with NGCF, being better than MF, which admits the utility of enforcing embedding smoothness with Laplacian regularizer. 
+By adding normalization into the Laplacian regularizer, GRMF-norm betters than GRMF on Gowalla, while brings no benefits on Yelp2018 and Amazon-Book. 
+
+
+
+\begin{table}[h]
+\caption{The comparison of overall performance among LightGCN and competing methods.}\vspace{-8pt}
+\label{tab:overall}
+\resizebox{0.48\textwidth}{!}{
+\begin{tabular}{l|c c|c c|c c}
+\hline
+\textbf{Dataset} & \multicolumn{2}{c|}{\textbf{Gowalla}} & \multicolumn{2}{c|}{\textbf{Yelp2018}} & \multicolumn{2}{c}{\textbf{Amazon-Book}} \\ \hline
+\textbf{Method} & \textbf{recall} & \textbf{ndcg} & \textbf{recall} & \textbf{ndcg} & \textbf{recall} & \textbf{ndcg} \\ \hline\hline
+NGCF & 0.1570 & 0.1327 & 0.0579 & 0.0477 & 0.0344 & 0.0263 \\ \hline
+Mult-VAE   & 0.1641	& 0.1335 & 0.0584 & 0.0450 &  0.0407 & 0.0315\\ \hline
+GRMF & 0.1477 & 0.1205 & 0.0571 & 0.0462 & 0.0354 &
+0.0270\\ 
+GRMF-norm & 0.1557 & 0.1261 & 0.0561 & 0.0454
+ & 0.0352 & 0.0269\\\hline
+LightGCN & \textbf{0.1830} & \textbf{0.1554} & \textbf{0.0649} & \textbf{0.0530} & \textbf{0.0411} & \textbf{0.0315} \\\hline
+\end{tabular}
+}
+\end{table}
+
+\subsection{Ablation and Effectiveness Analyses}\label{ss:exp-ablation}
+We perform ablation studies on LightGCN by showing how layer combination and symmetric sqrt normalization affect its performance. To justify the rationality of LightGCN as analyzed in Section \ref{ss:second-order}, we further investigate the effect of embedding smoothness --- the key reason of LightGCN's effectiveness. 
+
+%As $L_2$ regularization coefficient $\lambda$ is the most important hyper-parameter that affects LightGCN's performance, we further perform hyper-parameter study on it. 
+
+
+\begin{figure*}[t]
+	\centering
+	\subfigure{\includegraphics[width=0.24\textwidth]{recall_Gowalla_single.pdf}} 
+	\subfigure{\includegraphics[width=0.24\textwidth]{ndcg_Gowalla_single.pdf}} 
+	\subfigure{\includegraphics[width=0.24\textwidth]{recall_Amazon-book_single.pdf}}
+	\subfigure{\includegraphics[width=0.24\textwidth]{ndcg_Amazon-book_single.pdf}}
+	\vspace{-15pt}
+	\caption{Results of LightGCN and the variant that does not use layer combination (i.e., LightGCN-single) at different layers on Gowalla and Amazon-Book (results on Yelp2018 shows the same trend with Amazon-Book which are omitted for space).} \vspace{-5pt}
+	\label{fig:layer-combination}
+\end{figure*}
+
+\subsubsection{Impact of Layer Combination} Figure \ref{fig:layer-combination} shows the results of LightGCN and its variant LightGCN-single that does not use layer combination (i.e., $\textbf{E}^{(K)}$ is used for final prediction for a $K$-layer LightGCN). We omit the results on Yelp2018 due to space limitation, which show similar trend with Amazon-Book. We have three main observations:
+\begin{itemize}[leftmargin=*]
+\item Focusing on LightGCN-single, we find that its performance first improves and then drops when the layer number increases from 1 to 4. The peak point is on layer 2 in most cases, while after that it drops quickly to the worst point of layer 4. This indicates that smoothing a node's embedding with its first-order and second-order neighbors is very useful for CF, but will suffer from over-smoothing issues when higher-order neighbors are used. 
+\item Focusing on LightGCN, we find that its performance gradually improves with the increasing of layers. Even using 4 layers, LightGCN's performance is not degraded. This justifies the effectiveness of layer combination for addressing over-smoothing, as we have technically analyzed in Section~\ref{ss:APPNP} (relation with APPNP). 
+\item Comparing the two methods, we find that LightGCN consistently outperforms LightGCN-single on Gowalla, but not on Amazon-Book and Yelp2018 (where the 2-layer LightGCN-single performs the best). Regarding this phenomenon, two points need to be noted before we draw conclusion: 1) LightGCN-single is special case of LightGCN that sets $\alpha_K$ to 1 and other $\alpha_k$ to 0; 2) we do not tune the $\alpha_k$ and simply set it as $\frac{1}{K+1}$ uniformly for LightGCN. As such, we can see the potential of further enhancing the performance of LightGCN by tuning $\alpha_k$. 
+\end{itemize}
+
+
+\begin{table}
+\caption{Performance of the 3-layer LightGCN with different choices of normalization schemes in graph convolution.}\vspace{-8pt}
+\label{tab:norm-3}
+\resizebox{0.48\textwidth}{!}{
+\begin{tabular}{l|c c|c c|c c}
+\hline
+\textbf{Dataset} & \multicolumn{2}{c|}{\textbf{Gowalla}} & \multicolumn{2}{c|}{\textbf{Yelp2018}} & \multicolumn{2}{c}{\textbf{Amazon-Book}} \\ \hline
+\textbf{Method} & \textbf{recall} & \textbf{ndcg} & \textbf{recall} & \textbf{ndcg} & \textbf{recall} & \textbf{ndcg} \\ \hline\hline
+LightGCN-$L_1$-L &  0.1724 & 0.1414
+ & 0.0630 & 0.0511 & \textbf{0.0419} & \textbf{0.0320}\\ 
+LightGCN-$L_1$-R & 0.1578 & 0.1348
+ & 0.0587 & 0.0477 & 0.0334 & 0.0259\\ 
+LightGCN-$L_1$ &0.159 & 0.1319
+   &0.0573 & 0.0465 & 0.0361 & 0.0275\\ \hline
+LightGCN-L    & 0.1589 & 0.1317 & 0.0619 & 0.0509
+ & 0.0383 &	0.0299 \\ 
+LightGCN-R   & 0.1420 & 0.1156 & 0.0521 & 0.0401
+ & 0.0252 &	0.0196
+ \\ \hline\hline
+LightGCN & \textbf{0.1830} & \textbf{0.1554} & \textbf{0.0649} & \textbf{0.0530} & 0.0411 & 0.0315 \\ \hline 
+\end{tabular}
+}
+\small{Method notation: -L means only the left-side norm is used, -R means only the right-side norm is used, and -$L_1$ means the $L_1$ norm is used.}
+\end{table}
+\subsubsection{Impact of Symmetric Sqrt Normalization}\label{ss:ablation-symmetric}
+In LightGCN, we employ symmetric sqrt normalization $\frac{1}{\sqrt{|\mathcal{N}_u|}\sqrt{|\mathcal{N}_i|}}$ on each neighbor embedding when performing neighborhood aggregation (cf. Equation~(\ref{eq:LGC})). To study its rationality, we explore different choices here. We test the use of normalization only at the left side (i.e., the target node's coefficient) and the right side (i.e., the neighbor node's coefficient). 
+We also test $L_1$ normalization, i.e.,  removing the square root. 
+Note that if removing normalization, the training becomes numerically unstable and suffers from not-a-value (NAN) issues, so we do not show this setting. 
+%We justify the design of symmetric normalization in light graph convolution. 
+Table \ref{tab:norm-3} shows the results of the 3-layer LightGCN. %For example, LightGCN-$L_1$-L means the variant that only uses the left-side $L_1$ normalization, and LightGCN-$L_1$ means the variant that uses $L_1$ normalization at both sides. 
+We have the following observations:
+\begin{itemize}[leftmargin=*]
+    \item The best setting in general is using sqrt normalization at both sides (i.e., the current design of LightGCN). Removing either side will drop the performance largely.
+    \item The second best setting is using $L_1$ normalization at the left side only (i.e., LightGCN-$L_1$-L). This is equivalent to normalize the adjacency matrix as a stochastic matrix by the in-degree. 
+    \item Normalizing symmetrically on two sides is helpful for the sqrt normalization, but will degrade the performance of $L_1$ normalization. 
+\end{itemize}
+
+\subsubsection{Analysis of Embedding Smoothness} 
+As we have analyzed in Section~\ref{ss:second-order}, a 2-layer LightGCN smooths a user's embedding based on the users that have overlap on her interacted items, and the smoothing strength between two users $c_{v\to u}$ is measured in Equation~(\ref{eq:c_vu}). We speculate that such smoothing of embeddings is the key reason of LightGCN's effectiveness. To verify this, we first define the smoothness of user embeddings as:
+\begin{equation}
+    S_U = \sum_{u=1}^M \sum_{v=1}^M c_{v\to u} (\frac{\textbf{e}_{u}}{||\textbf{e}_{u}||^2} - \frac{\textbf{e}_{v}}{||\textbf{e}_{v}||^2})^2, 
+\end{equation}
+where the $L_2$ norm on embeddings is used to eliminate the impact of the embedding's scale. Similarly we can obtained the definition for item embeddings. 
+Table~\ref{tab:Smoothness} shows the smoothness of two models, matrix factorization (i.e., using the $\textbf{E}^{(0)}$ for model prediction) and the 2-layer LightGCN-single (i.e., using the $\textbf{E}^{(2)}$ for prediction). 
+Note that the 2-layer LightGCN-single outperforms MF in recommendation accuracy by a large margin. As can be seen, the smoothness loss of LightGCN-single is much lower than that of MF. This indicates that by conducting light graph convolution, the embeddings become smoother and more suitable for recommendation. 
+
+
+\begin{table}[t]
+\caption{Smoothness loss of the embeddings learned by LightGCN and MF (the lower the smoother).}\vspace{-8pt}
+\label{tab:Smoothness}
+%\resizebox{0.42\textwidth}{!}{
+\begin{tabular}{l|c|c|c}
+\hline
+\textbf{Dataset} & \multicolumn{1}{c|}{\textbf{Gowalla}} & \multicolumn{1}{c|}{\textbf{Yelp2018}} & \multicolumn{1}{c}{\textbf{Amazon-book}}\\ \hline
+&\multicolumn{3}{c}{\textbf{Smoothness of User Embeddings}}\\ \hline
+% Yelp2015 & $22,501$ & $14,280$ & $630,135$ & $0.00196$ \\ \hline
+MF & 15449.3 & 16258.2 & 38034.2  \\ \hline
+LightGCN-single & 12872.7 & 10091.7 & 32191.1 \\ \hline
+%LightGCN-2 & 17380.77 & 13446.72 & 40180.383 \\ \hline
+&\multicolumn{3}{c}{\textbf{Smoothness of Item Embeddings}}\\ \hline
+% Yelp2015 & $22,501$ & $14,280$ & $630,135$ & $0.00196$ \\ \hline
+MF & 12106.7 & 16632.1 & 28307.9  \\ \hline
+LightGCN-single & 5829.0 & 6459.8 & 16866.0 \\ \hline
+%LightGCN-2 & 12772.654 & 11129.691 & 28614.87 \\ \hline
+\end{tabular}
+\vspace{-5pt}
+\end{table}
+
+%\begin{table}
+%\caption{Performance of LightGCN (2 layers) with different choices of normalization schemes in graph convolution. The best scores among the variants are highlighted.}\vspace{-8pt}
+%\label{tab:norm-2}
+%\resizebox{0.48\textwidth}{!}{
+%\begin{tabular}{l|c c|c c|c c}
+%\hline
+% & \multicolumn{2}{c|}{\textbf{Gowalla}} & \multicolumn{2}{c|}{\textbf{Yelp2018}} & \multicolumn{2}{c}{\textbf{Amazon-Book}} \\ \hline
+% & \textbf{recall} & \textbf{ndcg} & \textbf{recall} & \textbf{ndcg} & \textbf{recall} & \textbf{ndcg} \\ \hline\hline
+%LightGCN-$L_1$-L &      0.1681 & 0.2202 & 0.0579 & 0.1048 & \texdtbf{0.0410} & 0.0711 \\ 
+%LightGCN-$L_1$-R & 0.1534 & 0.2272 & 0.0567 & 0.1060 & 0.0333 & 0.0637 \\ 
+%LightGCN-$L_1$ & 0.1608 & 0.2203 & 0.0602 & 0.1088 & 0.0361 & 0.0647   \\ \hline
+%LightGCN-L    & 0.1607 & 0.2307 & 0.0593 & 0.1119 & 0.0431 & 0.0788 \\ 
+%LightGCN-R  & 0.1486 & 0.2221 & 0.0558 & 1060 & 0.0312 & 0.0608  \\ \hline\hline
+%LightGCN & 0.1786 & 0.2487 & 0.0618 & 0.1120 & 0.0413 & 0.0729 \\ \hline 
+%\end{tabular}
+%}
+%\end{table}
+
+\subsection{Hyper-parameter Studies}\label{ss:exp-hyper}
+When applying LightGCN to a new dataset, besides the standard hyper-parameter learning rate, the most important hyper-parameter to tune is the $L_2$ regularization coefficient $\lambda$. 
+Here we investigate the performance change of LightGCN w.r.t. $\lambda$. 
+
+As shown in Figure \ref{fig:reg},
+LightGCN is relatively insensitive to $\lambda$ --- even when $\lambda$ sets to 0, LightGCN is better than NGCF, which additionally uses dropout to prevent overfitting\footnote{Note that Gowalla shows the same trend with Amazon-Book, so its curves are not shown to better highlight the trend of Yelp2018 and Amazon-Book.}. 
+This shows that LightGCN is less prone to overfitting --- since the only trainable parameters in LightGCN are ID embeddings of the 0-th layer, the whole model is easy to train and to regularize. The optimal value for Yelp2018, Amazon-Book, and Gowalla is $1e^{-3}$, $1e^{-4}$, and  $1e^{-4}$, respectively. When $\lambda$ is larger than $1e^{-3}$, the performance drops quickly, which indicates that too strong regularization will negatively affect model normal training and is not encouraged. 
+
+\begin{figure}[t]
+	\centering
+	\subfigure{\includegraphics[width=0.23\textwidth]{recall_20_reg.pdf}} 
+	\subfigure{\includegraphics[width=0.23\textwidth]{ndcg_20_reg.pdf}} 
+	\vspace{-15pt}
+	\caption{Performance of 2-layer LightGCN w.r.t. different regularization coefficient $\lambda$ on Yelp and Amazon-Book.} \vspace{-10pt}
+	\label{fig:reg}
+\end{figure}
+
+%Removed: the results at different embedding sizes. 
+%\begin{table*}[t]
+%\caption{Performance comparison between MF and LightGCN at different embedding size.}
+%\vspace{-10px}
+%\label{tab:overall}
+%\begin{tabular}{c|c|l | l|l | l| l | l}
+%\hline
+% \multicolumn{2}{c|}{\textbf{Dataset}} & \multicolumn{2}{c|}{\textbf{Gowalla}} & \multicolumn{2}{c|}{\textbf{Yelp2018}*} & \multicolumn{2}{c}{\textbf{Amazon-Book}} \\ \hline
+% \textbf{Dim \#} & \textbf{Method}  & \textbf{recall} & \textbf{ndcg} & \textbf{recall} & \textbf{ndcg} & \textbf{recall} & \textbf{ndcg} \\ \hline\hline
+%\multirow{2}{*}{\textbf{Dim 16}} & MF &  0.1263 & 0.2004 & 0.0459 & 0.0886 & 0.0245 & 0.0504 \\ 
+%&LightGCN & 0.1559 & 0.2337 & 0.0551 & 0.1030 & 0.0306 & 0.0596 \\ \hline
+%\multirow{2}{*}{\textbf{Dim 32}} & MF &  0.1415 & 0.2064 & 0.0504 & 0.0950 & 0.0303 & 0.0569 \\ 
+%&LightGCN & 0.1705 & 0.2456 & 0.0598 & 0.1092 & 0.0359 & 0.0666 \\  \hline
+%\multirow{2}{*}{\textbf{Dim 64}} & MF &   0.1547 & 0.2237 & 0.0549 & 0.1023 & 0.0344 & 0.0630 \\ 
+%&LightGCN & 0.1809 & 0.2513 & 0.0648 & 0.1163 & 0.0415 & 0.0740 \\ \hline
+%\multirow{2}{*}{\textbf{Dim 128}} & MF&  %0.1597 & 0.2100 & 0.0573 & 0.1055 & 0.0402 & 0.0715 \\ 
+%&LightGCN & 0.1867 & 0.2544 & 0.0676 & 0.1200 & 0.0474 & 0.0814 \\ \hline
+%\end{tabular}\vspace{+2pt}
+%\small{*The scores of NGCF on Gowalla and Amazon-Book are directly copied from the Table 3 of \cite{NGCF}; the scores of NGCF on Yelp2018 are re-run by us.} \vspace{-5pt}
+%\end{table*}
