@@ -1,0 +1,122 @@
+[
+  {
+    "id": "gq01",
+    "question": "SLA xử lý ticket P1 đã thay đổi như thế nào so với phiên bản trước?",
+    "answer": "SLA xử lý ticket P1 đã thay đổi từ 6 giờ xuống 4 giờ cho quy trình khắc phục (resolution) trong phiên bản cập nhật v2026.1 [2].",
+    "sources": [
+      "support/sla-p1-2026.pdf",
+      "policy/refund-v4.pdf"
+    ],
+    "chunks_retrieved": 3,
+    "retrieval_mode": "hybrid",
+    "timestamp": "2026-04-13T16:28:20.770312"
+  },
+  {
+    "id": "gq02",
+    "question": "Nhân viên làm remote cần dùng VPN không? Phần mềm VPN là gì và mỗi tài khoản được kết nối tối đa bao nhiêu thiết bị?",
+    "answer": "Nhân viên làm remote cần kết nối VPN khi làm việc với hệ thống nội bộ [2]. Phần mềm VPN công ty sử dụng là Cisco AnyConnect [1]. Mỗi tài khoản được kết nối VPN trên tối đa 2 thiết bị cùng lúc [1].",
+    "sources": [
+      "hr/leave-policy-2026.pdf",
+      "support/helpdesk-faq.md",
+      "it/access-control-sop.md"
+    ],
+    "chunks_retrieved": 3,
+    "retrieval_mode": "hybrid",
+    "timestamp": "2026-04-13T16:28:23.604011"
+  },
+  {
+    "id": "gq03",
+    "question": "Sản phẩm thuộc chương trình Flash Sale và đã được kích hoạt thì có được hoàn tiền không?",
+    "answer": "Sản phẩm thuộc chương trình Flash Sale và đã được kích hoạt thì không được hoàn tiền [1].",
+    "sources": [
+      "support/helpdesk-faq.md",
+      "policy/refund-v4.pdf"
+    ],
+    "chunks_retrieved": 3,
+    "retrieval_mode": "hybrid",
+    "timestamp": "2026-04-13T16:28:25.743534"
+  },
+  {
+    "id": "gq04",
+    "question": "Nếu khách hàng từ chối nhận hoàn tiền mặt, họ có thể nhận store credit với tỷ lệ bao nhiêu phần trăm so với số tiền gốc?",
+    "answer": "Khách hàng có thể nhận store credit với giá trị 110% so với số tiền hoàn [1].",
+    "sources": [
+      "policy/refund-v4.pdf"
+    ],
+    "chunks_retrieved": 3,
+    "retrieval_mode": "hybrid",
+    "timestamp": "2026-04-13T16:28:27.427727"
+  },
+  {
+    "id": "gq05",
+    "question": "Một contractor bên ngoài công ty có thể được cấp quyền Admin Access không? Nếu có, cần những điều kiện và approver nào?",
+    "answer": "Không đủ dữ liệu để trả lời.",
+    "sources": [
+      "support/helpdesk-faq.md",
+      "it/access-control-sop.md"
+    ],
+    "chunks_retrieved": 3,
+    "retrieval_mode": "hybrid",
+    "timestamp": "2026-04-13T16:28:29.127233"
+  },
+  {
+    "id": "gq06",
+    "question": "Lúc 2 giờ sáng xảy ra sự cố P1, on-call engineer cần cấp quyền tạm thời cho một nhân viên để xử lý incident. Quy trình cụ thể là gì?",
+    "answer": "Quy trình cấp quyền tạm thời cho nhân viên trong sự cố P1 là như sau:\n\n1. On-call IT Admin có thể cấp quyền tạm thời (tối đa 24 giờ) sau khi được Tech Lead phê duyệt bằng lời.\n2. Sau 24 giờ, phải có ticket chính thức hoặc quyền sẽ bị thu hồi tự động.\n3. Mọi quyền tạm thời phải được ghi log vào hệ thống Security Audit [1].",
+    "sources": [
+      "support/sla-p1-2026.pdf",
+      "it/access-control-sop.md"
+    ],
+    "chunks_retrieved": 3,
+    "retrieval_mode": "hybrid",
+    "timestamp": "2026-04-13T16:28:31.903725"
+  },
+  {
+    "id": "gq07",
+    "question": "Mức phạt khi vi phạm SLA P1 là bao nhiêu?",
+    "answer": "Không đủ dữ liệu để trả lời.",
+    "sources": [
+      "support/sla-p1-2026.pdf",
+      "support/helpdesk-faq.md"
+    ],
+    "chunks_retrieved": 3,
+    "retrieval_mode": "hybrid",
+    "timestamp": "2026-04-13T16:28:33.423332"
+  },
+  {
+    "id": "gq08",
+    "question": "Nhân viên phải báo nghỉ phép trước 3 ngày làm việc và nghỉ ốm trên 3 ngày liên tiếp cần giấy tờ y tế — hai con số '3 ngày' này có giống nhau không?",
+    "answer": "Hai con số '3 ngày' này không giống nhau. Một là thời gian thông báo nghỉ phép trước khi nghỉ, và một là số ngày nghỉ ốm liên tiếp cần giấy tờ y tế [1][2].",
+    "sources": [
+      "hr/leave-policy-2026.pdf",
+      "it/access-control-sop.md"
+    ],
+    "chunks_retrieved": 3,
+    "retrieval_mode": "hybrid",
+    "timestamp": "2026-04-13T16:28:35.902792"
+  },
+  {
+    "id": "gq09",
+    "question": "Mật khẩu phải được thay đổi sau bao nhiêu ngày? Hệ thống nhắc nhở trước bao nhiêu ngày?",
+    "answer": "Mật khẩu phải được thay đổi mỗi 90 ngày. Hệ thống sẽ nhắc nhở 7 ngày trước khi hết hạn [1].",
+    "sources": [
+      "hr/leave-policy-2026.pdf",
+      "support/helpdesk-faq.md",
+      "policy/refund-v4.pdf"
+    ],
+    "chunks_retrieved": 3,
+    "retrieval_mode": "hybrid",
+    "timestamp": "2026-04-13T16:28:37.616509"
+  },
+  {
+    "id": "gq10",
+    "question": "Chính sách hoàn tiền phiên bản 4 có áp dụng cho các đơn hàng được đặt trước ngày 01/02/2026 không?",
+    "answer": "Chính sách hoàn tiền phiên bản 4 không áp dụng cho các đơn hàng được đặt trước ngày 01/02/2026, mà sẽ áp dụng theo chính sách hoàn tiền phiên bản 3 [1].",
+    "sources": [
+      "policy/refund-v4.pdf"
+    ],
+    "chunks_retrieved": 3,
+    "retrieval_mode": "hybrid",
+    "timestamp": "2026-04-13T16:28:39.598231"
+  }
+]

@@ -19,7 +19,7 @@
 
 **Mô tả ngắn gọn:**
 > TODO: Mô tả hệ thống trong 2-3 câu. Nhóm xây gì? Cho ai dùng? Giải quyết vấn đề gì?
-
+Nhóm đang xây một hệ thống RAG hỏi-đáp nội bộ: lấy tài liệu chính sách/quy trình (HR, IT, CS...), chia chunk, nhúng vào ChromaDB, rồi truy xuất ngữ cảnh để LLM trả lời kèm citation nguồn.nHệ thống này hướng tới nhân viên hoặc bộ phận vận hành nội bộ cần tra cứu nhanh các quy định như hoàn tiền, SLA, quyền truy cập, nghỉ phép. Vấn đề được giải quyết là giảm thời gian tìm tài liệu rời rạc và hạn chế trả lời sai/bịa bằng cách buộc câu trả lời bám sát nội dung đã index.
 ---
 
 ## 2. Indexing Pipeline (Sprint 1)
@@ -27,22 +27,22 @@
 ### Tài liệu được index
 | File | Nguồn | Department | Số chunk |
 |------|-------|-----------|---------|
-| `policy_refund_v4.txt` | policy/refund-v4.pdf | CS | TODO |
-| `sla_p1_2026.txt` | support/sla-p1-2026.pdf | IT | TODO |
-| `access_control_sop.txt` | it/access-control-sop.md | IT Security | TODO |
-| `it_helpdesk_faq.txt` | support/helpdesk-faq.md | IT | TODO |
-| `hr_leave_policy.txt` | hr/leave-policy-2026.pdf | HR | TODO |
+| `policy_refund_v4.txt` | policy/refund-v4.pdf | CS | 6 |
+| `sla_p1_2026.txt` | support/sla-p1-2026.pdf | IT | 5 |
+| `access_control_sop.txt` | it/access-control-sop.md | IT Security | 7 |
+| `it_helpdesk_faq.txt` | support/helpdesk-faq.md | IT | 6 |
+| `hr_leave_policy.txt` | hr/leave-policy-2026.pdf | HR | 5 |
 
 ### Quyết định chunking
 | Tham số | Giá trị | Lý do |
 |---------|---------|-------|
-| Chunk size | TODO tokens | TODO |
-| Overlap | TODO tokens | TODO |
-| Chunking strategy | Heading-based / paragraph-based | TODO |
+| Chunk size | 1600 characters (tương đương 400 tokens) | Đủ lớn để giữ trọn ngữ cảnh của một điều khoản/quy trình (policy, SOP), giảm trường hợp mất ý khi câu trả lời cần nhiều câu liên tiếp. |
+| Overlap | 320 characters (tương đương 80 tokens) | Giữ liên kết ngữ nghĩa giữa 2 chunk liền kề, hạn chế mất thông tin tại ranh giới chunk và cải thiện recall cho truy vấn nằm giữa 2 đoạn. |
+| Chunking strategy | Heading-based / paragraph-based | Tách theo heading trước để bảo toàn cấu trúc tài liệu; với phần không có heading rõ ràng thì tách theo paragraph để chunk vẫn tự nhiên, dễ trích dẫn và grounded hơn. |
 | Metadata fields | source, section, effective_date, department, access | Phục vụ filter, freshness, citation |
 
 ### Embedding model
-- **Model**: TODO (OpenAI text-embedding-3-small / paraphrase-multilingual-MiniLM-L12-v2)
+- **Model**: text-embedding-3-small
 - **Vector store**: ChromaDB (PersistentClient)
 - **Similarity metric**: Cosine
 
@@ -61,16 +61,18 @@
 ### Variant (Sprint 3)
 | Tham số | Giá trị | Thay đổi so với baseline |
 |---------|---------|------------------------|
-| Strategy | TODO (hybrid / dense) | TODO |
-| Top-k search | TODO | TODO |
-| Top-k select | TODO | TODO |
-| Rerank | TODO (cross-encoder / MMR) | TODO |
-| Query transform | TODO (expansion / HyDE / decomposition) | TODO |
+| Strategy | `retrieval_mode="dense"` + `use_rerank=True` | Giữ nguyên retrieve, thêm bước lọc lại |
+| Top-k search | 10 | Không đổi |
+| Top-k select | 3 | Không đổi |
+| Rerank | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Mới (chấm điểm lại relevance) |
+| Query transform | Không dùng (`query_transform=None`) | Không đổi |
 
 **Lý do chọn variant này:**
 > TODO: Giải thích tại sao chọn biến này để tune.
 > Ví dụ: "Chọn hybrid vì corpus có cả câu tự nhiên (policy) lẫn mã lỗi và tên chuyên ngành (SLA ticket P1, ERR-403)."
-
+Baseline dense thường trả về một số chunk “gần nghĩa” nhưng chưa thật sự bám sát câu hỏi, làm context đưa vào prompt còn nhiễu.  
+Nhóm chọn thêm rerank để giữ nguyên chi phí retrieve (top-k search = 10) nhưng ưu tiên lại các chunk liên quan nhất trước khi generate (top-k select = 3).  
+Cách này tuân theo A/B rule (chỉ đổi 1 biến: `use_rerank`) nên dễ đo tác động rõ ràng so với baseline.
 ---
 
 ## 4. Generation (Sprint 2)
@@ -122,15 +124,35 @@ Answer:
 
 ```mermaid
 graph LR
-    A[User Query] --> B[Query Embedding]
-    B --> C[ChromaDB Vector Search]
-    C --> D[Top-10 Candidates]
-    D --> E{Rerank?}
-    E -->|Yes| F[Cross-Encoder]
-    E -->|No| G[Top-3 Select]
-    F --> G
-    G --> H[Build Context Block]
-    H --> I[Grounded Prompt]
-    I --> J[LLM]
-    J --> K[Answer + Citation]
+    A[User Query] --> B{Query Transform?}
+    B -->|No| C[Single Query]
+    B -->|Yes| D[Expanded Queries]
+    D --> E[Merge & Deduplicate]
+
+    C --> F{Retrieval Mode}
+    E --> F
+
+    F -->|dense| G1[Dense Retrieve]
+    F -->|sparse| G2[Sparse Retrieve]
+    F -->|hybrid| G3[Hybrid Retrieve]
+
+    G1 --> H[Top-k Search Candidates]
+    G2 --> H
+    G3 --> H
+
+    H --> I{Use Rerank?}
+    I -->|Yes| J[Cross-Encoder Rerank]
+    I -->|No| K[Top-k Select]
+
+    J --> K
+    K --> L[Build Context Block]
+    L --> M[Build Grounded Prompt]
+    M --> N{LLM Provider}
+    N -->|openai| O1[gpt-4o-mini]
+    N -->|gemini| O2[gemini-1.5-flash]
+
+    O1 --> P[Answer]
+    O2 --> P
+    P --> Q[Sources + Chunks Used + Config]
+
 ```

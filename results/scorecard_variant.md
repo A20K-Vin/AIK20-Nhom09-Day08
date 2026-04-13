@@ -1,5 +1,5 @@
 # Scorecard: variant_hybrid_rerank
-Generated: 2026-04-13 14:30
+Generated: 2026-04-13 16:26
 
 ## Summary
 
@@ -23,4 +23,4 @@ Generated: 2026-04-13 14:30
 | q07 | Access Control | 5 | 5 | 5 | 1 | The model correctly abstained from answering due t |
 | q08 | HR Policy | 5 | 5 | 5 | 4 | The answer is directly supported by the retrieved  |
 | q09 | Insufficient Context | 5 | 5 | None | 5 | The answer correctly abstains from providing infor |
-| q10 | Refund | 5 | 5 | 5 | 1 | The answer correctly abstains from providing infor |
+| q10 | Refund | 5 | 5 | 5 | 1 | The model correctly abstained from answering due t |
