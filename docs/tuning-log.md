@@ -55,6 +55,7 @@ q09 (Insufficient Context) — Completeness = 2/5.
 > TODO: Giải thích theo evidence từ baseline results.
 > Ví dụ: "Chọn hybrid vì q07 (alias query) và q09 (mã lỗi ERR-403) đều thất bại với dense.
 > Corpus có cả ngôn ngữ tự nhiên (policy) lẫn tên riêng/mã lỗi (ticket code, SLA label)."
+
 q04 (Refund) — Faithfulness = 2/5, Completeness = 3/5.
 Trả lời có thêm điều kiện “trừ khi có lỗi do nhà sản xuất” nhưng không có trong context, nên bị lỗi grounded/hallucination nhẹ.
 
@@ -89,6 +90,7 @@ retrieval_mode = "hybrid"   # hoặc biến khác
 | q08 | 5/5/5/4 | 5/5/5/5 | Variant |
 | q09 | 5/5/None/2 | 5/1/None/5 | Baseline |
 | q10 | 5/5/5/3 | 5/5/5/3 | Tie |
+
 **Nhận xét:**
 > TODO: Variant 1 cải thiện ở câu nào? Tại sao?
 Variant cải thiện rõ ở q02, q04, q08.
@@ -108,11 +110,14 @@ Có, giảm ở q06, q07, q09.
 > TODO: Variant 1 có tốt hơn baseline không?
 Không tốt hơn tổng thể.
 > Bằng chứng là gì? (điểm số, câu hỏi cụ thể)
+
 Bằng chứng:
 
-Điểm trung bình giảm ở 2 metric chính: Faithfulness 4.60 → 4.50 (-0.10), Relevance 4.80 → 4.40 (-0.40).
-Context Recall giữ nguyên 5.00, Completeness giữ nguyên 3.90 (không có cải thiện tổng thể).
-Dù có 3 câu cải thiện (q02, q04, q08), các lỗi giảm chất lượng ở q06, q07, q09 có tác động lớn hơn, nên baseline vẫn ổn định hơn cho bộ test này.
+> Điểm trung bình giảm ở 2 metric chính: Faithfulness 4.60 → 4.50 (-0.10), Relevance 4.80 → 4.40 (-0.40).
+
+> Context Recall giữ nguyên 5.00, Completeness giữ nguyên 3.90 (không có cải thiện tổng thể).
+
+> Dù có 3 câu cải thiện (q02, q04, q08), các lỗi giảm chất lượng ở q06, q07, q09 có tác động lớn hơn, nên baseline vẫn ổn định hơn cho bộ test này.
 ---
 
 ## Variant 2 (nếu có thời gian)
@@ -120,7 +125,13 @@ Dù có 3 câu cải thiện (q02, q04, q08), các lỗi giảm chất lượng 
 **Biến thay đổi:** use_rerank  
 **Config:** True
 ```
-# TODO
+retrieval_mode = "dense"
+use_rerank = True
+top_k_search = 10
+top_k_select = 3
+# Giữ nguyên các tham số khác để đúng A/B rule (chỉ đổi 1 biến).
+# Evidence từ baseline: lỗi chính nằm ở ranking/chọn ngữ cảnh cho câu khó,
+# đặc biệt q09 (câu cần abstain) nên thử rerank để ưu tiên context liên quan hơn.
 ```
 
 **Scorecard Variant 2:**
