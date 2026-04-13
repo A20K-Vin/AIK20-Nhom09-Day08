@@ -111,8 +111,36 @@ def retrieve_sparse(query: str, top_k: int = TOP_K_SEARCH) -> List[Dict[str, Any
     """
     # TODO Sprint 3: Implement BM25 search
     # Tạm thời return empty list
-    print("[retrieve_sparse] Chưa implement — Sprint 3")
-    return []
+    print("[retrieve_sparse] Đã implement — Sprint 3")
+
+    import chromadb
+    from index import get_embedding, CHROMA_DB_DIR
+
+    client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
+    collection = client.get_collection("rag_lab")
+
+    all_chunks = collection.get(include=["documents", "metadatas"])["documents"]
+    print(f"[retrieve_sparse] Loaded {len(all_chunks)} chunks from ChromaDB for BM25 indexing.")
+
+    from rank_bm25 import BM25Okapi
+    corpus = [chunk["text"] for chunk in all_chunks]
+    tokenized_corpus = [doc.lower().split() for doc in corpus]
+    bm25 = BM25Okapi(tokenized_corpus)
+    tokenized_query = query.lower().split()
+    scores = bm25.get_scores(tokenized_query)
+    top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+    
+    results = []
+    for idx in top_indices:
+        chunk = all_chunks[idx]
+        score = scores[idx]
+        metadata = collection.get(ids=[chunk["id"]], include=["metadatas"])["metadatas"][0]
+        results.append({
+            "text": chunk["text"],
+            "metadata": metadata,
+            "score": score,
+        })
+    return results
 
 
 # =============================================================================
@@ -150,8 +178,37 @@ def retrieve_hybrid(
     """
     # TODO Sprint 3: Implement hybrid RRF
     # Tạm thời fallback về dense
-    print("[retrieve_hybrid] Chưa implement RRF — fallback về dense")
-    return retrieve_dense(query, top_k)
+    print("[retrieve_hybrid] Đã implement RRF")
+
+    dense_results = retrieve_dense(query, top_k=top_k*2)  # Lấy nhiều hơn để có đủ candidates
+    sparse_results = retrieve_sparse(query, top_k=top_k*2)
+
+        # Tạo dict để map doc_id → rank
+    dense_ranks = {res["metadata"]["id"]: rank for rank, res in enumerate(dense_results, 1)}
+    sparse_ranks = {res["metadata"]["id"]: rank for rank, res in enumerate(sparse_results, 1)}
+
+    # Tính RRF score cho mỗi doc_id
+    all_doc_ids = set(dense_ranks.keys()) | set(sparse_ranks.keys())
+    rrf_scores = {}
+    for doc_id in all_doc_ids:
+        dense_rank = dense_ranks.get(doc_id, float('inf'))  # Nếu không có trong dense, rank vô cực
+        sparse_rank = sparse_ranks.get(doc_id, float('inf'))  # Nếu không có trong sparse, rank vô cực
+        rrf_score = dense_weight * (1 / (60 + dense_rank)) + sparse_weight * (1 / (60 + sparse_rank))
+        rrf_scores[doc_id] = rrf_score
+
+    # Sort doc_ids theo RRF score giảm dần
+    sorted_doc_ids = sorted(all_doc_ids, key=lambda id: rrf_scores[id], reverse=True)
+    top_doc_ids = sorted_doc_ids[:top_k]
+
+    # Lấy lại full chunk info cho top_doc_ids
+    top_chunks = []
+    for doc_id in top_doc_ids:
+        if doc_id in dense_ranks:
+            chunk = next(res for res in dense_results if res["metadata"]["id"] == doc_id)
+        else:
+            chunk = next(res for res in sparse_results if res["metadata"]["id"] == doc_id)
+        top_chunks.append(chunk)
+    return top_chunks
 
 
 # =============================================================================
@@ -437,7 +494,7 @@ def compare_retrieval_strategies(query: str) -> None:
     print(f"Query: {query}")
     print('='*60)
 
-    strategies = ["dense", "hybrid"]  # Thêm "sparse" sau khi implement
+    strategies = ["dense", "sparse", "hybrid"]  # Thêm "sparse" sau khi implement
 
     for strategy in strategies:
         print(f"\n--- Strategy: {strategy} ---")
@@ -482,8 +539,8 @@ if __name__ == "__main__":
 
     # Uncomment sau khi Sprint 3 hoàn thành:
     # print("\n--- Sprint 3: So sánh strategies ---")
-    # compare_retrieval_strategies("Approval Matrix để cấp quyền là tài liệu nào?")
-    # compare_retrieval_strategies("ERR-403-AUTH")
+    compare_retrieval_strategies("Approval Matrix để cấp quyền là tài liệu nào?")
+    compare_retrieval_strategies("ERR-403-AUTH")
 
     print("\n\nViệc cần làm Sprint 2:")
     print("  1. Implement retrieve_dense() — query ChromaDB")
