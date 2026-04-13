@@ -71,8 +71,8 @@ VARIANT_CONFIG = {
     "retrieval_mode": "hybrid",
     "top_k_search": 10,
     "top_k_select": 3,
-    "use_rerank": False,
-    "label": "variant_hybrid",
+    "use_rerank": True,
+    "label": "variant_hybrid_rerank",
 }
 
 

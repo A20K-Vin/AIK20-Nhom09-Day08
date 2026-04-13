@@ -1,0 +1,211 @@
+[
+  {
+    "id": "gq01",
+    "question": "SLA xử lý ticket P1 đã thay đổi như thế nào so với phiên bản trước?",
+    "expected_answer": "Phiên bản hiện tại v2026.1 (có hiệu lực từ 2026-01-15) cập nhật SLA P1 resolution từ 6 giờ xuống 4 giờ. Phiên bản trước v2025.3 quy định thời gian xử lý là 6 giờ.",
+    "expected_sources": ["support/sla-p1-2026.pdf"],
+    "difficulty": "hard",
+    "category": "SLA",
+    "rag_skill_tested": "Freshness & version reasoning",
+    "grading_criteria": [
+      "Nêu đúng giá trị hiện tại: resolution 4 giờ",
+      "Nêu đúng giá trị cũ: 6 giờ",
+      "Đề cập effective_date hoặc phiên bản v2026.1"
+    ],
+    "failure_modes": [
+      "Chỉ nêu SLA 4 giờ mà không đề cập phiên bản cũ",
+      "Lẫn lộn effective_date hoặc sai metadata",
+      "Không có citation về version/effective_date"
+    ],
+    "points": 10,
+    "note": "Kiểm tra freshness filtering và khả năng tổng hợp thông tin lịch sử version từ một tài liệu"
+  },
+  {
+    "id": "gq02",
+    "question": "Nhân viên làm remote cần dùng VPN không? Phần mềm VPN là gì và mỗi tài khoản được kết nối tối đa bao nhiêu thiết bị?",
+    "expected_answer": "Khi làm việc remote và truy cập hệ thống nội bộ, VPN là bắt buộc (theo hr/leave-policy-2026.pdf). Phần mềm VPN là Cisco AnyConnect. Mỗi tài khoản được kết nối VPN trên tối đa 2 thiết bị cùng lúc (theo support/helpdesk-faq.md).",
+    "expected_sources": ["hr/leave-policy-2026.pdf", "support/helpdesk-faq.md"],
+    "difficulty": "hard",
+    "category": "Cross-Document",
+    "rag_skill_tested": "Multi-document synthesis",
+    "grading_criteria": [
+      "Nêu được VPN là bắt buộc khi remote và truy cập hệ thống nội bộ",
+      "Nêu đúng tên phần mềm VPN: Cisco AnyConnect",
+      "Nêu đúng giới hạn thiết bị: tối đa 2 thiết bị"
+    ],
+    "failure_modes": [
+      "Chỉ trả lời một phần (chỉ VPN hoặc chỉ thiết bị)",
+      "Không cross-document: chỉ lấy thông tin từ 1 nguồn",
+      "Bỏ qua giới hạn 2 thiết bị"
+    ],
+    "points": 10,
+    "note": "Kiểm tra multi-chunk cross-document: retriever phải lấy được chunk từ ít nhất 2 file khác nhau"
+  },
+  {
+    "id": "gq03",
+    "question": "Sản phẩm thuộc chương trình Flash Sale và đã được kích hoạt thì có được hoàn tiền không?",
+    "expected_answer": "Không được hoàn tiền. Theo Điều 3 của chính sách hoàn tiền v4, có 2 điều kiện ngoại lệ áp dụng đồng thời: (1) đơn hàng đã áp dụng mã giảm giá Flash Sale, và (2) sản phẩm đã được kích hoạt — cả hai đều thuộc danh sách ngoại lệ không được hoàn tiền.",
+    "expected_sources": ["policy/refund-v4.pdf"],
+    "difficulty": "hard",
+    "category": "Refund",
+    "rag_skill_tested": "Exception chain retrieval & completeness",
+    "grading_criteria": [
+      "Kết luận rõ ràng: không được hoàn tiền",
+      "Nêu đúng điều kiện Flash Sale là ngoại lệ",
+      "Nêu đúng điều kiện đã kích hoạt là ngoại lệ",
+      "Citation về Điều 3 của policy/refund-v4.pdf"
+    ],
+    "failure_modes": [
+      "Chỉ nêu một điều kiện ngoại lệ, bỏ điều kiện kia",
+      "Trả lời sai: có thể hoàn tiền",
+      "Không có citation về Điều 3"
+    ],
+    "points": 10,
+    "note": "Kiểm tra completeness — pipeline phải lấy đủ cả hai điều kiện ngoại lệ trong Điều 3"
+  },
+  {
+    "id": "gq04",
+    "question": "Nếu khách hàng từ chối nhận hoàn tiền mặt, họ có thể nhận store credit với tỷ lệ bao nhiêu phần trăm so với số tiền gốc?",
+    "expected_answer": "Khách hàng có thể chọn nhận store credit thay thế với giá trị 110% so với số tiền hoàn. Đây là tùy chọn, không bắt buộc.",
+    "expected_sources": ["policy/refund-v4.pdf"],
+    "difficulty": "medium",
+    "category": "Refund",
+    "rag_skill_tested": "Specific numeric fact retrieval",
+    "grading_criteria": [
+      "Nêu đúng tỷ lệ 110%",
+      "Nêu rõ đây là tùy chọn, không bắt buộc"
+    ],
+    "failure_modes": [
+      "Nêu sai tỷ lệ (100%, 120%, v.v.)",
+      "Không nêu con số cụ thể",
+      "Bịa ra điều kiện hoặc tỷ lệ không có trong tài liệu"
+    ],
+    "points": 8,
+    "note": "Kiểm tra faithfulness — con số 110% nằm trong Điều 5 cụ thể. Nếu bịa sai tỷ lệ → penalty"
+  },
+  {
+    "id": "gq05",
+    "question": "Một contractor bên ngoài công ty có thể được cấp quyền Admin Access không? Nếu có, cần những điều kiện và approver nào?",
+    "expected_answer": "Có. Theo Access Control SOP Section 1, quy trình áp dụng cho tất cả nhân viên, contractor và third-party vendor. Admin Access (Level 4) yêu cầu: phê duyệt từ IT Manager và CISO, thời gian xử lý 5 ngày làm việc, và Training bắt buộc về security policy.",
+    "expected_sources": ["it/access-control-sop.md"],
+    "difficulty": "hard",
+    "category": "Access Control",
+    "rag_skill_tested": "Scope identification + multi-detail retrieval",
+    "grading_criteria": [
+      "Xác nhận đúng: contractor có thể được cấp Admin Access",
+      "Nêu đủ approvers: IT Manager + CISO",
+      "Nêu thời gian xử lý: 5 ngày làm việc",
+      "Nêu yêu cầu Training bắt buộc về security policy"
+    ],
+    "failure_modes": [
+      "Nói contractor không được cấp Level 4",
+      "Lẫn lộn Level 3 và Level 4 approvers",
+      "Bỏ qua requirement về training",
+      "Không đề cập thời gian xử lý"
+    ],
+    "points": 10,
+    "note": "Kiểm tra multi-chunk: retriever phải lấy đủ từ Section 1 (scope) và Section 2 (Level 4 details)"
+  },
+  {
+    "id": "gq06",
+    "question": "Lúc 2 giờ sáng xảy ra sự cố P1, on-call engineer cần cấp quyền tạm thời cho một nhân viên để xử lý incident. Quy trình cụ thể là gì?",
+    "expected_answer": "Theo Access Control SOP Section 4: On-call IT Admin có thể cấp quyền tạm thời (tối đa 24 giờ) sau khi được Tech Lead phê duyệt bằng lời. Sau 24 giờ phải có ticket chính thức hoặc quyền bị thu hồi tự động. Mọi quyền tạm thời phải ghi log vào Security Audit. Liên hệ on-call qua hotline ext. 9999 (24/7) theo SLA P1.",
+    "expected_sources": ["it/access-control-sop.md", "support/sla-p1-2026.pdf"],
+    "difficulty": "hard",
+    "category": "Cross-Document",
+    "rag_skill_tested": "Emergency path + cross-document multi-hop",
+    "grading_criteria": [
+      "Nêu đúng quyền tạm thời tối đa 24 giờ",
+      "Nêu đúng cần Tech Lead phê duyệt bằng lời",
+      "Nêu yêu cầu ghi log vào Security Audit",
+      "Nêu sau 24 giờ cần ticket chính thức hoặc quyền bị thu hồi"
+    ],
+    "failure_modes": [
+      "Chỉ mô tả quy trình thông thường, không phải escalation khẩn cấp",
+      "Không tìm được cross-document link giữa SLA P1 và Access Control emergency path"
+    ],
+    "points": 12,
+    "note": "Câu khó nhất — cần đủ từ Section 4 của access_control_sop VÀ Section 4 của sla_p1_2026"
+  },
+  {
+    "id": "gq07",
+    "question": "Mức phạt khi vi phạm SLA P1 là bao nhiêu?",
+    "expected_answer": "Không tìm thấy thông tin về mức phạt vi phạm SLA P1 trong các tài liệu hiện có. Pipeline nên abstain và không bịa ra con số hay quy định cụ thể.",
+    "expected_sources": [],
+    "difficulty": "hard",
+    "category": "IT",
+    "rag_skill_tested": "Abstain behavior — hallucination resilience",
+    "grading_criteria": [
+      "KHÔNG bịa ra mức phạt cụ thể",
+      "Nêu rõ thông tin không có trong tài liệu",
+      "Tùy chọn: gợi ý liên hệ bộ phận phụ trách"
+    ],
+    "failure_modes": [
+      "Bịa ra con số phạt tiền hoặc % penalty",
+      "Trả lời có vẻ hợp lý nhưng từ model knowledge, không cite nguồn"
+    ],
+    "points": 10,
+    "note": "Hallucination bất kỳ thông tin nào về SLA penalties sẽ bị trừ điểm"
+  },
+  {
+    "id": "gq08",
+    "question": "Nhân viên phải báo nghỉ phép trước 3 ngày làm việc và nghỉ ốm trên 3 ngày liên tiếp cần giấy tờ y tế — hai con số '3 ngày' này có giống nhau không?",
+    "expected_answer": "Không giống nhau. '3 ngày làm việc' khi xin nghỉ phép là thời gian báo trước tối thiểu qua HR Portal. '3 ngày liên tiếp' nghỉ ốm là ngưỡng để yêu cầu giấy tờ y tế từ bệnh viện. Hai con số áp dụng trong hai tình huống hoàn toàn khác nhau.",
+    "expected_sources": ["hr/leave-policy-2026.pdf"],
+    "difficulty": "hard",
+    "category": "HR Policy",
+    "rag_skill_tested": "Disambiguation — same number, different contexts",
+    "grading_criteria": [
+      "Nêu đúng nghỉ phép phải báo trước ít nhất 3 ngày làm việc",
+      "Nêu đúng nghỉ ốm trên 3 ngày liên tiếp cần giấy tờ y tế",
+      "Phân biệt rõ ràng hai con số '3 ngày' là khác nhau về ngữ cảnh"
+    ],
+    "failure_modes": [
+      "Lẫn lộn '3 ngày' trong hai ngữ cảnh khác nhau",
+      "Chỉ trả lời một phần"
+    ],
+    "points": 10,
+    "note": "Kiểm tra disambiguation — '3 ngày' xuất hiện với ngữ cảnh khác nhau trong cùng tài liệu"
+  },
+  {
+    "id": "gq09",
+    "question": "Mật khẩu phải được thay đổi sau bao nhiêu ngày? Hệ thống nhắc nhở trước bao nhiêu ngày?",
+    "expected_answer": "Mật khẩu phải được thay đổi mỗi 90 ngày. Hệ thống sẽ nhắc nhở 7 ngày trước khi hết hạn.",
+    "expected_sources": ["support/helpdesk-faq.md"],
+    "difficulty": "medium",
+    "category": "IT Helpdesk",
+    "rag_skill_tested": "Multi-detail FAQ retrieval",
+    "grading_criteria": [
+      "Nêu đúng chu kỳ đổi mật khẩu: 90 ngày",
+      "Nêu đúng thời gian nhắc nhở: 7 ngày trước khi hết hạn"
+    ],
+    "failure_modes": [
+      "Nêu thiếu một trong hai con số",
+      "Nêu sai số ngày (30, 60 thay vì 90)",
+      "Trả lời từ general IT knowledge thay vì retrieved context"
+    ],
+    "points": 8,
+    "note": "Kiểm tra multi-detail extraction từ FAQ. Dễ bị model guess sai từ prior knowledge"
+  },
+  {
+    "id": "gq10",
+    "question": "Chính sách hoàn tiền phiên bản 4 có áp dụng cho các đơn hàng được đặt trước ngày 01/02/2026 không?",
+    "expected_answer": "Không. Chính sách hoàn tiền v4 có effective_date là 2026-02-01, chỉ áp dụng cho các đơn hàng đặt từ ngày 01/02/2026 trở đi. Các đơn hàng đặt trước ngày đó áp dụng chính sách hoàn tiền phiên bản 3.",
+    "expected_sources": ["policy/refund-v4.pdf"],
+    "difficulty": "hard",
+    "category": "Refund",
+    "rag_skill_tested": "Temporal scoping — metadata-aware retrieval",
+    "grading_criteria": [
+      "Kết luận rõ ràng: KHÔNG áp dụng cho đơn trước 01/02/2026",
+      "Nêu đúng effective_date: 2026-02-01",
+      "Đề cập đơn hàng trước ngày đó áp dụng chính sách phiên bản 3"
+    ],
+    "failure_modes": [
+      "Không kiểm tra điều kiện effective_date",
+      "Kết luận sai hoặc mơ hồ",
+      "Trả lời theo general knowledge mà không cite nguồn"
+    ],
+    "points": 10,
+    "note": "Kiểm tra temporal reasoning — pipeline phải filter/reason về effective_date. Failure mode phổ biến nhất của RAG pipeline"
+  }
+]
