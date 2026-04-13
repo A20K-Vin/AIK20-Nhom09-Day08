@@ -70,41 +70,40 @@ retrieval_mode = "hybrid"   # hoặc biến khác
 ```
 
 **Scorecard Variant 1:**
-======================================================================
-A/B Comparison: Baseline vs Variant
-======================================================================
-Metric                 Baseline    Variant    Delta
--------------------------------------------------------
-faithfulness               4.60       4.50    -0.10
-relevance                  4.80       4.40    -0.40
-context_recall             5.00       5.00    +0.00
-completeness               3.90       3.90    +0.00
+| Metric | Baseline | Variant | Delta |
+|--------|----------|---------|-------|
+| faithfulness | 4.60 | 4.50 | -0.10 |
+| relevance | 4.80 | 4.40 | -0.40 |
+| context_recall | 5.00 | 5.00 | +0.00 |
+| completeness | 3.90 | 3.90 | +0.00 |
 
-Câu    Baseline F/R/Rc/C      Variant F/R/Rc/C       Better?
------------------------------------------------------------------
-q01    5/5/5/5                5/5/5/5                Tie
-q02    4/5/5/5                5/5/5/5                Variant
-q03    5/5/5/5                5/5/5/5                Tie
-q04    2/5/5/3                3/5/5/3                Variant
-q05    5/5/5/5                5/5/5/5                Tie
-q06    5/5/5/5                5/3/5/1                Baseline
-q07    5/3/5/2                2/5/5/2                Baseline
-q08    5/5/5/4                5/5/5/5                Variant
-q09    5/5/None/2             5/1/None/5             Baseline
-q10    5/5/5/3                5/5/5/3                Tie
+| Câu | Baseline F/R/Rc/C | Variant F/R/Rc/C | Better? |
+|-----|--------------------|------------------|---------|
+| q01 | 5/5/5/5 | 5/5/5/5 | Tie |
+| q02 | 4/5/5/5 | 5/5/5/5 | Variant |
+| q03 | 5/5/5/5 | 5/5/5/5 | Tie |
+| q04 | 2/5/5/3 | 3/5/5/3 | Variant |
+| q05 | 5/5/5/5 | 5/5/5/5 | Tie |
+| q06 | 5/5/5/5 | 5/3/5/1 | Baseline |
+| q07 | 5/3/5/2 | 2/5/5/2 | Baseline |
+| q08 | 5/5/5/4 | 5/5/5/5 | Variant |
+| q09 | 5/5/None/2 | 5/1/None/5 | Baseline |
+| q10 | 5/5/5/3 | 5/5/5/3 | Tie |
 **Nhận xét:**
 > TODO: Variant 1 cải thiện ở câu nào? Tại sao?
 Variant cải thiện rõ ở q02, q04, q08.
 
-q02: Faithfulness tăng 4 → 5 (trả lời bám context hơn).
+> q02: Faithfulness tăng 4 → 5 (trả lời bám context hơn).
 q04: Faithfulness tăng 2 → 3 (giảm bớt suy diễn, dù vẫn chưa hoàn toàn đúng kỳ vọng).
 q08: Completeness tăng 4 → 5 (đủ ý hơn ở điều kiện remote).
 > Có câu nào kém hơn không? Tại sao?
 Có, giảm ở q06, q07, q09.
 
-q06: Relevance/Completeness giảm mạnh (5/5 → 3/1) do lệch ngữ cảnh escalation P1.
-q07: Faithfulness giảm (5 → 2) vì không xử lý tốt query alias “Approval Matrix” ↔ “Access Control SOP”.
-q09: Relevance giảm (5 → 1) vì variant trả lời quá ngắn (“Tôi không biết.”), đúng hướng abstain nhưng thiếu thông tin định hướng theo expected answer.
+> q06: Relevance/Completeness giảm mạnh (5/5 → 3/1) do lệch ngữ cảnh escalation P1.
+
+> q07: Faithfulness giảm (5 → 2) vì không xử lý tốt query alias “Approval Matrix” ↔ “Access Control SOP”.
+
+> q09: Relevance giảm (5 → 1) vì variant trả lời quá ngắn (“Tôi không biết.”), đúng hướng abstain nhưng thiếu thông tin định hướng theo expected answer.
 **Kết luận:**
 > TODO: Variant 1 có tốt hơn baseline không?
 Không tốt hơn tổng thể.
@@ -125,28 +124,25 @@ Dù có 3 câu cải thiện (q02, q04, q08), các lỗi giảm chất lượng 
 ```
 
 **Scorecard Variant 2:**
-======================================================================
-A/B Comparison: Baseline vs Variant
-======================================================================
-Metric                 Baseline    Variant    Delta
--------------------------------------------------------
-faithfulness               4.60       4.60    +0.00
-relevance                  4.60       5.00    +0.40
-context_recall             5.00       5.00    +0.00
-completeness               3.90       3.90    +0.00
+| Metric | Baseline | Variant | Delta |
+|--------|----------|---------|-------|
+| faithfulness | 4.60 | 4.60 | +0.00 |
+| relevance | 4.60 | 5.00 | +0.40 |
+| context_recall | 5.00 | 5.00 | +0.00 |
+| completeness | 3.90 | 3.90 | +0.00 |
 
-Câu    Baseline F/R/Rc/C      Variant F/R/Rc/C       Better?
------------------------------------------------------------------
-q01    5/5/5/5                5/5/5/5                Tie
-q02    4/5/5/5                4/5/5/5                Tie
-q03    5/5/5/5                5/5/5/5                Tie
-q04    2/5/5/3                2/5/5/3                Tie
-q05    5/5/5/5                5/5/5/5                Tie
-q06    5/5/5/5                5/5/5/5                Tie
-q07    5/5/5/1                5/5/5/1                Tie
-q08    5/5/5/4                5/5/5/4                Tie
-q09    5/1/None/5             5/5/None/5             Variant
-q10    5/5/5/1                5/5/5/1                Tie
+| Câu | Baseline F/R/Rc/C | Variant F/R/Rc/C | Better? |
+|-----|--------------------|------------------|---------|
+| q01 | 5/5/5/5 | 5/5/5/5 | Tie |
+| q02 | 4/5/5/5 | 4/5/5/5 | Tie |
+| q03 | 5/5/5/5 | 5/5/5/5 | Tie |
+| q04 | 2/5/5/3 | 2/5/5/3 | Tie |
+| q05 | 5/5/5/5 | 5/5/5/5 | Tie |
+| q06 | 5/5/5/5 | 5/5/5/5 | Tie |
+| q07 | 5/5/5/1 | 5/5/5/1 | Tie |
+| q08 | 5/5/5/4 | 5/5/5/4 | Tie |
+| q09 | 5/1/None/5 | 5/5/None/5 | Variant |
+| q10 | 5/5/5/1 | 5/5/5/1 | Tie |
 
 ---
 
